@@ -10,3 +10,8 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# Node.js / Vite
+node_modules/
+dist/
+*.tsbuildinfo

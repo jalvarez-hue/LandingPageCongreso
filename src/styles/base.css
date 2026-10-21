@@ -1,0 +1,120 @@
+@import "./tokens.css";
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  background: var(--cn-color-deep);
+  color: var(--cn-color-white);
+  font-family: var(--cn-font-body);
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--cn-font-body);
+}
+
+a {
+  color: var(--cn-color-lime);
+}
+
+a:hover {
+  color: var(--cn-color-white);
+}
+
+:focus-visible {
+  outline: 3px solid var(--cn-color-blue);
+  outline-offset: 3px;
+}
+
+.cn-page {
+  min-width: 0;
+  background: var(--cn-color-deep);
+  color: var(--cn-color-white);
+}
+
+.cn-skip-link {
+  position: absolute;
+  z-index: 10;
+  top: 8px;
+  left: 8px;
+  padding: 12px 16px;
+  transform: translateY(-160%);
+  background: var(--cn-color-lime);
+  color: var(--cn-color-deep);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.cn-skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+.cn-reset-heading {
+  margin: 0;
+}
+
+@keyframes cnvoces {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-50% - 10px)); }
+}
+
+@keyframes cnflipA {
+  0% { transform: rotateX(-90deg); opacity: 0.3; }
+  60% { transform: rotateX(12deg); opacity: 1; }
+  100% { transform: rotateX(0); }
+}
+
+@keyframes cnflipB {
+  0% { transform: rotateX(-90deg); opacity: 0.3; }
+  60% { transform: rotateX(12deg); opacity: 1; }
+  100% { transform: rotateX(0); }
+}
+
+.cn-tier {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cn-tier:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgb(6 32 26 / 14%);
+}
+
+.cn-voces:hover .cn-voces-track {
+  animation-play-state: paused;
+}
+
+@media (max-width: 760px) {
+  .cn-deco {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .cn-flip,
+  .cn-voces-track {
+    animation: none !important;
+  }
+
+  .cn-voces {
+    overflow-x: auto;
+  }
+
+  .cn-tier {
+    transition: none;
+  }
+}

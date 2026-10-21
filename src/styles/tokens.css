@@ -1,0 +1,26 @@
+:root {
+  --cn-color-deep: #06201a;
+  --cn-color-forest: #0b3328;
+  --cn-color-lime: #c8f135;
+  --cn-color-bg: #f4f5ef;
+  --cn-color-bg-alt: #f4f3ee;
+  --cn-color-white: #fff;
+  --cn-color-ink: #111827;
+  --cn-color-green-accent: #3b6d11;
+  --cn-color-green-dark: #1c3b30;
+  --cn-color-blue: #0050ff;
+  --cn-color-blue-light: #2b6bff;
+  --cn-color-border: #e4e6de;
+  --cn-color-border-muted: #d9dcd2;
+  --cn-color-border-strong: #b9c2b6;
+  --cn-color-error: #ffb4a8;
+  --cn-color-text-muted: #3d5a50;
+  --cn-color-subtle-accent: #d3f55e;
+  --cn-color-forest-light: #114236;
+  --cn-color-forest-mid: #1a5243;
+  --cn-color-black: #161616;
+  --cn-color-border-subtle: #d6dccd;
+  --cn-font-body: Manrope, "Helvetica Neue", sans-serif;
+  --cn-font-display: "Bebas Neue", "Oswald", Impact, sans-serif;
+  --cn-content-width: 1280px;
+}
