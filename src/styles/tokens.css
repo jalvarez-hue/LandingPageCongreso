@@ -1,0 +1,15 @@
+:root {
+  --cn-color-deep: #06201a;
+  --cn-color-forest: #0b3328;
+  --cn-color-lime: #c8f135;
+  --cn-color-bg: #f4f5ef;
+  --cn-color-bg-alt: #f4f3ee;
+  --cn-color-white: #ffffff;
+  --cn-color-ink: #17352d;
+  --cn-color-muted: #587066;
+  --cn-color-blue: #2b6bff;
+  --cn-font-body: "Manrope", system-ui, sans-serif;
+  --cn-font-display: "Bebas Neue", "Arial Narrow", sans-serif;
+  --cn-content-width: 1280px;
+  --cn-radius: 8px;
+}

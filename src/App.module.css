@@ -1,0 +1,14 @@
+.app { overflow: hidden; }
+.container { width: min(var(--cn-content-width), 90%); margin: 0 auto; }
+.sponsors, .opportunities { padding: 6rem 0; color: var(--cn-color-forest); background: var(--cn-color-bg-alt); }
+.opportunities { background: var(--cn-color-white); }
+.kicker { margin: 0 0 1rem; color: var(--cn-color-blue); font-size: .75rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+h2 { margin: 0; color: inherit; font-family: var(--cn-font-display); font-size: clamp(3.5rem, 7vw, 6rem); font-weight: 400; line-height: .88; }
+.lead { max-width: 38rem; color: var(--cn-color-muted); font-size: 1.125rem; line-height: 1.6; }
+.sponsorGrid, .opportunityGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 3rem; }
+.sponsor { display: flex; min-height: 15rem; flex-direction: column; justify-content: space-between; padding: 2rem; border-radius: var(--cn-radius); background: var(--cn-color-forest); color: var(--cn-color-white); text-decoration: none; transition: transform .2s ease; }
+.sponsor:nth-child(2) { background: var(--cn-color-lime); color: var(--cn-color-deep); }.sponsor:nth-child(3) { background: var(--cn-color-blue); }.sponsor:nth-child(4) { background: var(--cn-color-bg); color: var(--cn-color-forest); border: 1px solid #e4e6de; }
+.sponsor:hover { transform: translateY(-4px); }.sponsor span, .sponsor small { font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }.sponsor small { color: inherit; letter-spacing: 0; text-transform: none; opacity: .72; }.sponsor strong { font-family: var(--cn-font-display); font-size: 3.5rem; font-weight: 400; line-height: .9; }
+.opportunityGrid a { display: flex; min-height: 16rem; flex-direction: column; justify-content: space-between; padding: 2rem; border: 1px solid #dfe4dc; border-radius: var(--cn-radius); color: var(--cn-color-forest); font-family: var(--cn-font-display); font-size: 3.5rem; line-height: .9; text-decoration: none; }.opportunityGrid a:nth-child(2) { background: var(--cn-color-lime); }.opportunityGrid a:nth-child(3) { background: var(--cn-color-blue); color: white; }.opportunityGrid a span { font-family: var(--cn-font-body); font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+@media (max-width: 760px) { .sponsors, .opportunities { padding: 4rem 0; }.sponsorGrid, .opportunityGrid { grid-template-columns: repeat(2, 1fr); }.sponsor, .opportunityGrid a { min-height: 12rem; padding: 1.25rem; }.sponsor strong, .opportunityGrid a { font-size: 2.5rem; } }
+@media (max-width: 480px) { .sponsorGrid, .opportunityGrid { grid-template-columns: 1fr; } }

@@ -1,0 +1,4 @@
+import { useCountdown } from '../../hooks/useCountdown';
+import styles from './Countdown.module.css';
+
+export function Countdown() { const value = useCountdown(); const units = [['days', 'Días'], ['hours', 'Horas'], ['minutes', 'Minutos'], ['seconds', 'Segundos']] as const; return <section className={styles.section} id="sede"><div className={styles.container}><p className={styles.kicker}>3ª edición</p><h2>Nos vemos en <em>Guadalajara</em></h2><p className={styles.lead}>La 3ª edición será del 1 al 4 de septiembre de 2027 en Guadalajara, Jalisco.</p>{value.complete ? <div className={styles.complete}>¡Hoy empieza en Guadalajara!</div> : <div className={styles.grid} role="timer" aria-label="Cuenta regresiva para el congreso en Guadalajara">{units.map(([key, label]) => <div className={styles.unit} key={key}><strong>{String(value[key]).padStart(2, '0')}</strong><span>{label}</span></div>)}</div>}</div></section>; }
