@@ -15,3 +15,8 @@ $RECYCLE.BIN/
 node_modules/
 dist/
 *.tsbuildinfo
+
+# Environment variables
+.env
+.env.*
+!.env.example

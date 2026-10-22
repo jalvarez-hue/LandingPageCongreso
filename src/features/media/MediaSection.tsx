@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '../../lib/supabaseClient';
 import styles from './MediaSection.module.css';
 
 const mediaPartners = [
@@ -28,6 +30,24 @@ const mediaPartners = [
 ] as const;
 
 export function MediaSection() {
+  const [remoteMedia, setRemoteMedia] = useState<{ id: string; title: string | null; media_type: 'image' | 'video'; url: string; thumbnail_url: string | null; alt_text: string | null }[]>([]);
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client) return;
+
+    const loadMedia = async () => {
+      const { data, error } = await client
+        .from('media_items')
+        .select('id, title, media_type, url, thumbnail_url, alt_text')
+        .eq('is_active', true)
+        .order('display_order');
+      if (!error && data?.length) setRemoteMedia(data as typeof remoteMedia);
+    };
+
+    void loadMedia();
+  }, []);
+
   return (
     <section id="medios" aria-labelledby="medios-title" className={`${styles.scope} cn-style-8b8d6142`}>
       <div className="cn-style-9314ad02">
@@ -38,18 +58,22 @@ export function MediaSection() {
           <span className="cn-style-da577a08" />
         </div>
         <div className="cn-style-3911d223">
-          {mediaPartners.map((partner) => (
-            <div key={partner.id} className="cn-style-e6372759">
-              <img
-                src={partner.src}
-                alt={partner.name}
-                loading="lazy"
-                width="240"
-                height="160"
-                className={partner.className}
-              />
-            </div>
-          ))}
+          {remoteMedia.length > 0
+            ? remoteMedia.map((item) => (
+                <div key={item.id} className="cn-style-e6372759">
+                  {item.media_type === 'video' ? (
+                    <video src={item.url} poster={item.thumbnail_url ?? undefined} controls width="240" height="160" />
+                  ) : (
+                    <img src={item.url} alt={item.alt_text ?? item.title ?? 'Recurso multimedia del congreso'} loading="lazy" width="240" height="160" />
+                  )}
+                  {item.title && <span className="cn-style-e662d2a7">{item.title}</span>}
+                </div>
+              ))
+            : mediaPartners.map((partner) => (
+                <div key={partner.id} className="cn-style-e6372759">
+                  <img src={partner.src} alt={partner.name} loading="lazy" width="240" height="160" className={partner.className} />
+                </div>
+              ))}
         </div>
       </div>
     </section>

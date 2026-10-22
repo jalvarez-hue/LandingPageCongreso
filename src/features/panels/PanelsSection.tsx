@@ -1,19 +1,61 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { KeyboardEvent, CSSProperties } from 'react';
 import { editions, panelsByEdition } from '../../data/panels';
-import type { EditionId } from '../../types/congress';
+import { supabase } from '../../lib/supabaseClient';
+import type { CongressPanel, EditionId } from '../../types/congress';
 import styles from './PanelsSection.module.css';
 
 export function PanelsSection() {
   const [editionId, setEditionId] = useState<EditionId>('mty');
   const [selectedPanelId, setSelectedPanelId] = useState(panelsByEdition.mty[0].id);
-  const panels = editionId === 'prox' ? [] : panelsByEdition[editionId];
+  const [remotePanels, setRemotePanels] = useState<Partial<Record<EditionId, readonly CongressPanel[]>>>({});
+  const panels = editionId === 'prox'
+    ? []
+    : remotePanels[editionId] ?? panelsByEdition[editionId];
   const selectedPanel =
     panels.find((panel) => panel.id === selectedPanelId) ?? panels[0];
 
+  useEffect(() => {
+    const client = supabase;
+    if (!client) return;
+
+    const loadPanels = async () => {
+      const [editionsResult, panelsResult] = await Promise.all([
+        client.from('congress_editions').select('id, slug'),
+        client.from('panels').select('id, edition_id, track, title, panel_speakers(id, name, role, is_moderator, display_order)').eq('is_published', true).order('display_order'),
+      ]);
+      if (editionsResult.error || panelsResult.error) return;
+
+      const editionIds = new Map(
+        (editionsResult.data as { id: string; slug: string }[]).map((edition) => [edition.id, edition.slug]),
+      );
+      const mapped: Partial<Record<EditionId, CongressPanel[]>> = {};
+      for (const panel of panelsResult.data as { id: string; edition_id: string; track: string; title: string; panel_speakers: { id: string; name: string; role: string | null; is_moderator: boolean; display_order: number }[] }[]) {
+        const slug = editionIds.get(panel.edition_id);
+        const targetEdition = slug?.startsWith('mer-') ? 'mer' : slug?.startsWith('mty-') ? 'mty' : slug?.startsWith('prox-') ? 'prox' : undefined;
+        if (!targetEdition) continue;
+        const moderator = panel.panel_speakers.find((speaker) => speaker.is_moderator) ?? panel.panel_speakers[0];
+        const panelists = panel.panel_speakers.filter((speaker) => speaker.id !== moderator?.id);
+        const mappedPanel: CongressPanel = {
+          id: panel.id,
+          track: panel.track,
+          title: panel.title,
+          moderator: { name: moderator?.name ?? 'Por confirmar', role: moderator?.role ?? 'Moderación por confirmar' },
+          panelists: panelists.map((speaker) => ({ name: speaker.name, role: speaker.role ?? 'Panelista' })),
+        };
+        mapped[targetEdition] = [...(mapped[targetEdition] ?? []), mappedPanel];
+      }
+      setRemotePanels(mapped);
+      const firstPanel = mapped.mty?.[0];
+      if (firstPanel) setSelectedPanelId(firstPanel.id);
+    };
+
+    void loadPanels();
+  }, []);
+
   const selectEdition = (id: EditionId) => {
     setEditionId(id);
-    const firstPanel = id === 'prox' ? undefined : panelsByEdition[id][0];
+    const firstPanel = remotePanels[id]?.[0] ?? (id === 'prox' ? undefined : panelsByEdition[id][0]);
     if (firstPanel) {
       setSelectedPanelId(firstPanel.id);
     }
@@ -83,7 +125,7 @@ export function PanelsSection() {
           role="tabpanel"
           aria-labelledby={`edition-tab-${editionId}`}
         >
-          {editionId !== 'prox' ? (
+          {panels.length > 0 ? (
             <div className="cn-style-e271afea">
               <div className="cn-style-8cc054d6">
                 {panels.map((panel) => {

@@ -6,6 +6,7 @@ import type {
   SponsorshipSelection,
 } from '../../types/congress';
 import { sponsorshipLevels } from '../../data/perspectives';
+import { supabase } from '../../lib/supabaseClient';
 import styles from './ContactForm.module.css';
 
 interface ContactFormProps {
@@ -15,7 +16,10 @@ interface ContactFormProps {
 
 type SubmissionStatus =
   | { kind: 'idle' }
-  | { kind: 'invalid'; message: string };
+  | { kind: 'invalid'; message: string }
+  | { kind: 'submitting' }
+  | { kind: 'success'; message: string }
+  | { kind: 'error'; message: string };
 
 const initialValues: ContactFormValues = {
   name: '',
@@ -51,7 +55,7 @@ export function ContactForm({ selection, onSelectionChange }: ContactFormProps) 
     setStatus({ kind: 'idle' });
   };
 
-  const submitForm = (event: FormEvent<HTMLFormElement>) => {
+  const submitForm = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const hasValidEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email.trim());
 
@@ -75,6 +79,27 @@ export function ContactForm({ selection, onSelectionChange }: ContactFormProps) 
       `Interés: ${interest}`,
       `Mensaje: ${values.message}`,
     ].join('\n');
+    const client = supabase;
+    if (client) {
+      setStatus({ kind: 'submitting' });
+      const { error } = await client.from('contact_messages').insert({
+        full_name: values.name.trim(),
+        role: values.role.trim() || null,
+        company: values.company.trim(),
+        organization: values.organization,
+        email: values.email.trim(),
+        interest: selection.interest || null,
+        message: body,
+      });
+      if (error) {
+        setStatus({ kind: 'error', message: 'No pudimos enviar tu mensaje. Intenta de nuevo.' });
+      } else {
+        setStatus({ kind: 'success', message: 'Mensaje enviado. Nuestro equipo te contactará pronto.' });
+        setValues(initialValues);
+      }
+      return;
+    }
+
     const subject = encodeURIComponent(`Patrocinio 3er Congreso · ${values.company}`);
     window.location.href =
       `mailto:congreso@weecompany.net?subject=${subject}&body=${encodeURIComponent(body)}`;
@@ -233,12 +258,15 @@ export function ContactForm({ selection, onSelectionChange }: ContactFormProps) 
               className="cn-style-e5e039a6"
             />
           </Field>
-          {status.kind === 'invalid' && (
+          {(status.kind === 'invalid' || status.kind === 'error') && (
             <p id="contact-error" role="alert" className="cn-style-b10d7528">
               {status.message}
             </p>
           )}
-          <button type="submit" className="cn-style-57ef7b41">Enviar</button>
+          {status.kind === 'success' && <p role="status" className="cn-style-b5ef31ec">{status.message}</p>}
+          <button type="submit" disabled={status.kind === 'submitting'} className="cn-style-57ef7b41">
+            {status.kind === 'submitting' ? 'Enviando...' : 'Enviar'}
+          </button>
           <p className="cn-style-b5ef31ec">* Campos obligatorios.</p>
         </form>
       </div>

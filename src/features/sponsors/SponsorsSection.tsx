@@ -1,4 +1,6 @@
-import { sponsorLogos } from '../../data/sponsors';
+import { useEffect, useState } from 'react';
+import { sponsorLogos, type SponsorLogo } from '../../data/sponsors';
+import { supabase } from '../../lib/supabaseClient';
 import styles from './SponsorsSection.module.css';
 
 const tiers = [
@@ -8,9 +10,44 @@ const tiers = [
 ] as const;
 
 export function SponsorsSection() {
-  const diamondLogos = sponsorLogos.filter((sponsor) => sponsor.tier === 'diamante');
-  const goldLogos = sponsorLogos.filter((sponsor) => sponsor.tier === 'oro');
-  const silverLogos = sponsorLogos.filter((sponsor) => sponsor.tier === 'plata');
+  const [logos, setLogos] = useState<readonly SponsorLogo[]>(sponsorLogos);
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client) return;
+
+    const loadSponsors = async () => {
+      const [sponsorsResult, tiersResult] = await Promise.all([
+        client.from('sponsors').select('id, name, logo_url, tier_id').eq('is_active', true).order('display_order'),
+        client.from('sponsorship_tiers').select('id, code').eq('is_active', true),
+      ]);
+      if (sponsorsResult.error || tiersResult.error || !sponsorsResult.data?.length) return;
+
+      const tierCodes = new Map(
+        (tiersResult.data as { id: string; code: string }[]).map((tier) => [tier.id, tier.code]),
+      );
+      const tierMap: Record<string, SponsorLogo['tier'] | undefined> = {
+        diamante: 'diamante',
+        oro: 'oro',
+        plata: 'plata',
+      };
+      const remoteLogos = (sponsorsResult.data as { id: string; name: string; logo_url: string; tier_id: string }[])
+        .map((sponsor) => ({
+          id: sponsor.id,
+          name: sponsor.name,
+          src: sponsor.logo_url,
+          tier: tierMap[tierCodes.get(sponsor.tier_id) ?? ''],
+        }))
+        .filter((sponsor): sponsor is SponsorLogo => Boolean(sponsor.tier));
+      if (remoteLogos.length) setLogos(remoteLogos);
+    };
+
+    void loadSponsors();
+  }, []);
+
+  const diamondLogos = logos.filter((sponsor) => sponsor.tier === 'diamante');
+  const goldLogos = logos.filter((sponsor) => sponsor.tier === 'oro');
+  const silverLogos = logos.filter((sponsor) => sponsor.tier === 'plata');
 
   return (
     <section
@@ -62,7 +99,7 @@ export function SponsorsSection() {
 
 interface SponsorTierProps {
   label: string;
-  logos: typeof sponsorLogos;
+  logos: readonly SponsorLogo[];
   marquee?: boolean;
 }
 
@@ -89,7 +126,7 @@ function SponsorTier({ label, logos, marquee = false }: SponsorTierProps) {
 }
 
 interface SponsorLogoProps {
-  sponsor: (typeof sponsorLogos)[number];
+  sponsor: SponsorLogo;
   marquee: boolean;
   duplicate?: boolean;
 }

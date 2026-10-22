@@ -16,6 +16,16 @@ npm run build
 npm run preview
 ```
 
+## Supabase y administración
+
+Define `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en el entorno de Vite, y ejecuta [supabase/congreso.sql](supabase/congreso.sql) en el SQL Editor de Supabase.
+
+El panel administrativo está disponible en `/#admin`. Permite autenticar usuarios y gestionar patrocinadores, paneles, sedes, medios y mensajes de contacto.
+
+Configura [supabase/email-confirmation.html](supabase/email-confirmation.html) en `Authentication > Email Templates > Confirm signup`. La URL de confirmación devuelve al usuario a `/#admin`.
+
+Durante el desarrollo puedes previsualizar el correo en [http://localhost:5173/email-confirmation.html](http://localhost:5173/email-confirmation.html).
+
 ## Estructura
 
 - `src/features/`: secciones independientes de la landing y sus CSS Modules.

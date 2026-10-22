@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { useCountdown } from '../../hooks/useCountdown';
+import { supabase } from '../../lib/supabaseClient';
 import styles from './VenueSection.module.css';
 
 const targetDate = new Date('2027-09-01T00:00:00-06:00').getTime();
@@ -38,6 +40,7 @@ const archive = [
 ] as const;
 
 export function VenueSection() {
+  const [venue, setVenue] = useState<{ name: string; address: string; description: string | null; image_url: string | null; google_maps_url: string | null } | null>(null);
   const time = useCountdown(targetDate);
   const digits = [
     { id: 'days', value: time.days, label: 'Días' },
@@ -45,6 +48,24 @@ export function VenueSection() {
     { id: 'minutes', value: time.minutes, label: 'Minutos' },
     { id: 'seconds', value: time.seconds, label: 'Segundos' },
   ] as const;
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client) return;
+
+    const loadVenue = async () => {
+      const { data, error } = await client
+        .from('venues')
+        .select('name, address, description, image_url, google_maps_url')
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!error && data) setVenue(data);
+    };
+
+    void loadVenue();
+  }, []);
 
   return (
     <section id="sede" aria-labelledby="sede-title" className={`${styles.scope} cn-style-a0a73029`}>
@@ -70,6 +91,16 @@ export function VenueSection() {
             </p>
           </div>
         </div>
+        {venue && (
+          <article className="cn-style-a0593b85">
+            <span className="cn-style-f9eb89cc">Sede confirmada</span>
+            <span className="cn-style-287f21e3">{venue.name}</span>
+            <span className="cn-style-e662d2a7">{venue.address}</span>
+            {venue.description && <p className="cn-style-e662d2a7">{venue.description}</p>}
+            {venue.image_url && <img src={venue.image_url} alt={venue.name} loading="lazy" className="cn-style-9e0e05e1" />}
+            {venue.google_maps_url && <a href={venue.google_maps_url} target="_blank" rel="noreferrer" className="cn-style-d60b5c98">Ver en Google Maps</a>}
+          </article>
+        )}
         {time.complete ? (
           <div className="cn-style-005e9b85">¡Hoy empieza en Guadalajara!</div>
         ) : (

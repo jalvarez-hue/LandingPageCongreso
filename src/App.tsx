@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { AdminApp } from './admin/AdminApp';
 import { SectionBoundary } from './components/layout/SectionBoundary';
 import { SiteFooter } from './features/footer/SiteFooter';
 import { HeroSection } from './features/hero/HeroSection';
@@ -18,6 +19,15 @@ const initialSelection: SponsorshipSelection = { interest: '', level: '' };
 
 export function App() {
   const [selection, setSelection] = useState(initialSelection);
+  const [isAdmin, setIsAdmin] = useState(() => window.location.hash === '#admin');
+
+  useEffect(() => {
+    const onHashChange = () => setIsAdmin(window.location.hash === '#admin');
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  if (isAdmin) return <AdminApp />;
 
   return (
     <div className="cn-page">
