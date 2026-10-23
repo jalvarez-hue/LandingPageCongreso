@@ -210,6 +210,36 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
+.speakerBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid #dce1d7;
+  background: #f8faf5;
+  border-radius: 4px;
+}
+.speakerBlock h4 {
+  margin: 0;
+  color: #06201a;
+  font-size: 16px;
+}
+.speakerHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.speakerRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.speakerDescription {
+  grid-column: 1 / -1;
+}
 
 .field {
   display: flex;
@@ -411,6 +441,13 @@ td span {
 @media (max-width: 560px) {
   .content {
     padding: 28px 16px;
+  }
+  .speakerRow {
+    grid-template-columns: 1fr;
+  }
+  .speakerHeading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .formGrid {

@@ -7,6 +7,7 @@ import type {
   Edition,
   MediaItem,
   Panel,
+  PanelSpeaker,
   Sponsor,
   Tier,
   Venue,
@@ -214,13 +215,166 @@ function SponsorsAdmin() {
 
 function PanelsAdmin() {
   const blank = { edition_id: '', track: '', title: '', description: '', location: '', start_time: '', end_time: '', display_order: '0', is_published: true };
-  const [rows, setRows] = useState<Panel[]>([]); const [editions, setEditions] = useState<Edition[]>([]); const [editing, setEditing] = useState<Panel | null>(null); const [form, setForm] = useState(blank); const [notice, setNotice] = useState('');
-  const load = async () => { if (!supabase) return; const [panels, editionsResult] = await Promise.all([supabase.from('panels').select('*').order('display_order'), supabase.from('congress_editions').select('id, slug, year, city, status').order('year', { ascending: false })]); if (!panels.error) setRows((panels.data ?? []) as Panel[]); if (!editionsResult.error) setEditions((editionsResult.data ?? []) as Edition[]); };
+  const blankModerator = { name: '', role: '', description: '' };
+  const blankPanelist = { name: '', role: '', description: '' };
+  const [rows, setRows] = useState<Panel[]>([]);
+  const [editions, setEditions] = useState<Edition[]>([]);
+  const [editing, setEditing] = useState<Panel | null>(null);
+  const [form, setForm] = useState(blank);
+  const [moderator, setModerator] = useState(blankModerator);
+  const [panelists, setPanelists] = useState([blankPanelist]);
+  const [notice, setNotice] = useState('');
+
+  const load = async () => {
+    if (!supabase) return;
+    const [panels, editionsResult] = await Promise.all([
+      supabase.from('panels').select('*').order('display_order'),
+      supabase.from('congress_editions').select('id, slug, year, city, status').order('year', { ascending: false }),
+    ]);
+    if (!panels.error) setRows((panels.data ?? []) as Panel[]);
+    if (!editionsResult.error) setEditions((editionsResult.data ?? []) as Edition[]);
+  };
+
   useEffect(() => { void load(); }, []);
-  const submit = async (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); if (!supabase) return; const payload = { ...form, display_order: Number(form.display_order), description: form.description || null, location: form.location || null, start_time: form.start_time || null, end_time: form.end_time || null }; const result = editing ? await supabase.from('panels').update(payload).eq('id', editing.id) : await supabase.from('panels').insert(payload); if (result.error) setNotice(result.error.message); else { setNotice(editing ? 'Panel actualizado.' : 'Panel creado.'); setEditing(null); setForm(blank); void load(); } };
-  const edit = (row: Panel) => { setEditing(row); setForm({ ...row, description: row.description ?? '', location: row.location ?? '', start_time: row.start_time?.slice(0, 16) ?? '', end_time: row.end_time?.slice(0, 16) ?? '', display_order: String(row.display_order) }); };
-  const remove = async (id: string) => { if (supabase && window.confirm('¿Eliminar este panel?')) { const result = await supabase.from('panels').delete().eq('id', id); setNotice(result.error?.message ?? 'Panel eliminado.'); void load(); } };
-  return <AdminSection title="Paneles" description="Agenda, temas y datos de cada sesión."><EditorForm title={editing ? 'Editar panel' : 'Agregar panel'} onSubmit={submit} onCancel={() => { setEditing(null); setForm(blank); }} notice={notice}><div className={styles.formGrid}><Field label="Edición"><select value={form.edition_id} onChange={(event) => setForm({ ...form, edition_id: event.target.value })} required><option value="">Selecciona</option>{editions.map((item) => <option key={item.id} value={item.id}>{item.year} · {item.city}</option>)}</select></Field><Field label="Track"><input value={form.track} onChange={(event) => setForm({ ...form, track: event.target.value })} required /></Field></div><Field label="Título"><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required /></Field><Field label="Descripción"><textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></Field><div className={styles.formGrid}><Field label="Sala"><input value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} /></Field><Field label="Orden"><input type="number" value={form.display_order} onChange={(event) => setForm({ ...form, display_order: event.target.value })} /></Field></div><div className={styles.formGrid}><Field label="Inicio"><input type="datetime-local" value={form.start_time} onChange={(event) => setForm({ ...form, start_time: event.target.value })} /></Field><Field label="Fin"><input type="datetime-local" value={form.end_time} onChange={(event) => setForm({ ...form, end_time: event.target.value })} /></Field></div><label className={styles.check}><input type="checkbox" checked={form.is_published} onChange={(event) => setForm({ ...form, is_published: event.target.checked })} /> Publicado</label></EditorForm><DataTable columns={['Título', 'Track', 'Edición', 'Estado', 'Acciones']}>{rows.map((row) => <tr key={row.id}><td>{row.title}</td><td>{row.track}</td><td>{editions.find((edition) => edition.id === row.edition_id)?.city ?? '—'}</td><td>{row.is_published ? 'Publicado' : 'Borrador'}</td><td><RowActions onEdit={() => edit(row)} onDelete={() => void remove(row.id)} /></td></tr>)}</DataTable></AdminSection>;
+
+  const resetForm = () => {
+    setEditing(null);
+    setForm(blank);
+    setModerator(blankModerator);
+    setPanelists([blankPanelist]);
+  };
+
+  const edit = async (row: Panel) => {
+    if (!supabase) return;
+    setEditing(row);
+    setForm({
+      edition_id: row.edition_id,
+      track: row.track,
+      title: row.title,
+      description: row.description ?? '',
+      location: row.location ?? '',
+      start_time: row.start_time?.slice(0, 16) ?? '',
+      end_time: row.end_time?.slice(0, 16) ?? '',
+      display_order: String(row.display_order),
+      is_published: row.is_published,
+    });
+    const result = await supabase
+      .from('panel_speakers')
+      .select('id, panel_id, name, role, bio, is_moderator, display_order')
+      .eq('panel_id', row.id)
+      .order('display_order');
+    if (result.error) {
+      setNotice(result.error.message);
+      return;
+    }
+    const speakers = (result.data ?? []) as PanelSpeaker[];
+    const moderatorSpeaker = speakers.find((speaker) => speaker.is_moderator);
+    setModerator({ name: moderatorSpeaker?.name ?? '', role: moderatorSpeaker?.role ?? '', description: moderatorSpeaker?.bio ?? '' });
+    setPanelists(speakers.filter((speaker) => !speaker.is_moderator).map((speaker) => ({ name: speaker.name, role: speaker.role ?? '', description: speaker.bio ?? '' })));
+  };
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!supabase) return;
+    const normalizedModerator = { name: moderator.name.trim(), role: moderator.role.trim(), description: moderator.description.trim() };
+    const normalizedPanelists = panelists
+      .map((panelist) => ({ name: panelist.name.trim(), role: panelist.role.trim(), description: panelist.description.trim() }))
+      .filter((panelist) => panelist.name);
+    if (!normalizedModerator.name) {
+      setNotice('Captura el nombre del moderador.');
+      return;
+    }
+    if (normalizedPanelists.length === 0) {
+      setNotice('Agrega al menos un panelista.');
+      return;
+    }
+
+    const payload = {
+      ...form,
+      display_order: Number(form.display_order),
+      description: form.description || null,
+      location: form.location || null,
+      start_time: form.start_time || null,
+      end_time: form.end_time || null,
+    };
+    let panelId = editing?.id;
+    if (editing) {
+      const result = await supabase.from('panels').update(payload).eq('id', editing.id);
+      if (result.error) {
+        setNotice(result.error.message);
+        return;
+      }
+    } else {
+      const result = await supabase.from('panels').insert(payload).select('id').single();
+      if (result.error) {
+        setNotice(result.error.message);
+        return;
+      }
+      panelId = result.data.id;
+    }
+
+    if (!panelId) return;
+    const removeSpeakers = await supabase.from('panel_speakers').delete().eq('panel_id', panelId);
+    if (removeSpeakers.error) {
+      setNotice(removeSpeakers.error.message);
+      return;
+    }
+    const speakerRows = [
+      { panel_id: panelId, name: normalizedModerator.name, role: normalizedModerator.role || null, bio: normalizedModerator.description || null, is_moderator: true, display_order: 0 },
+      ...normalizedPanelists.map((panelist, index) => ({ panel_id: panelId, name: panelist.name, role: panelist.role || null, bio: panelist.description || null, is_moderator: false, display_order: index + 1 })),
+    ];
+    const speakerResult = await supabase.from('panel_speakers').insert(speakerRows);
+    if (speakerResult.error) {
+      setNotice(speakerResult.error.message);
+      return;
+    }
+    setNotice(editing ? 'Panel actualizado.' : 'Panel creado.');
+    resetForm();
+    void load();
+  };
+
+  const remove = async (id: string) => {
+    if (supabase && window.confirm('¿Eliminar este panel?')) {
+      const result = await supabase.from('panels').delete().eq('id', id);
+      setNotice(result.error?.message ?? 'Panel eliminado.');
+      void load();
+    }
+  };
+
+  return <AdminSection title="Paneles" description="Agenda, temas, moderación y panelistas de cada sesión.">
+    <EditorForm title={editing ? 'Editar panel' : 'Agregar panel'} onSubmit={submit} onCancel={resetForm} notice={notice}>
+      <div className={styles.formGrid}>
+        <Field label="Edición"><select value={form.edition_id} onChange={(event) => setForm({ ...form, edition_id: event.target.value })} required><option value="">Selecciona</option>{editions.map((item) => <option key={item.id} value={item.id}>{item.year} · {item.city}</option>)}</select></Field>
+        <Field label="Track"><input value={form.track} onChange={(event) => setForm({ ...form, track: event.target.value })} required /></Field>
+      </div>
+      <Field label="Título"><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required /></Field>
+      <Field label="Descripción"><textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></Field>
+      <div className={styles.formGrid}>
+        <Field label="Sala"><input value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} /></Field>
+        <Field label="Orden"><input type="number" value={form.display_order} onChange={(event) => setForm({ ...form, display_order: event.target.value })} /></Field>
+      </div>
+      <div className={styles.formGrid}>
+        <Field label="Inicio"><input type="datetime-local" value={form.start_time} onChange={(event) => setForm({ ...form, start_time: event.target.value })} /></Field>
+        <Field label="Fin"><input type="datetime-local" value={form.end_time} onChange={(event) => setForm({ ...form, end_time: event.target.value })} /></Field>
+      </div>
+      <div className={styles.speakerBlock}>
+        <h4>Moderador</h4>
+        <div className={styles.formGrid}>
+          <Field label="Nombre del moderador"><input value={moderator.name} onChange={(event) => setModerator({ ...moderator, name: event.target.value })} required /></Field>
+          <Field label="Cargo"><input value={moderator.role} onChange={(event) => setModerator({ ...moderator, role: event.target.value })} /></Field>
+        </div>
+        <Field label="Descripción"><textarea value={moderator.description} onChange={(event) => setModerator({ ...moderator, description: event.target.value })} /></Field>
+      </div>
+      <div className={styles.speakerBlock}>
+        <div className={styles.speakerHeading}><h4>Panelistas</h4><button type="button" className={styles.smallButton} onClick={() => setPanelists([...panelists, blankPanelist])}>Agregar panelista</button></div>
+        {panelists.map((panelist, index) => <div className={styles.speakerRow} key={`${index}-${panelist.name}`}><Field label={`Panelista ${index + 1}`}><input value={panelist.name} onChange={(event) => setPanelists(panelists.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} required={index === 0} /></Field><Field label="Cargo"><input value={panelist.role} onChange={(event) => setPanelists(panelists.map((item, itemIndex) => itemIndex === index ? { ...item, role: event.target.value } : item))} /></Field><button type="button" className={styles.dangerButton} onClick={() => setPanelists(panelists.filter((_, itemIndex) => itemIndex !== index))} disabled={panelists.length === 1}>Quitar</button><div className={styles.speakerDescription}><Field label="Descripción"><textarea value={panelist.description} onChange={(event) => setPanelists(panelists.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))} /></Field></div></div>)}
+      </div>
+      <label className={styles.check}><input type="checkbox" checked={form.is_published} onChange={(event) => setForm({ ...form, is_published: event.target.checked })} /> Publicado</label>
+    </EditorForm>
+    <DataTable columns={['Título', 'Track', 'Edición', 'Estado', 'Acciones']}>
+      {rows.map((row) => <tr key={row.id}><td>{row.title}</td><td>{row.track}</td><td>{editions.find((edition) => edition.id === row.edition_id)?.city ?? '—'}</td><td>{row.is_published ? 'Publicado' : 'Borrador'}</td><td><RowActions onEdit={() => void edit(row)} onDelete={() => void remove(row.id)} /></td></tr>)}
+    </DataTable>
+  </AdminSection>;
 }
 
 function VenuesAdmin() {

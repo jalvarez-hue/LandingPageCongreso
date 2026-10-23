@@ -38,6 +38,16 @@ export interface Panel {
   is_published: boolean;
 }
 
+export interface PanelSpeaker {
+  id: string;
+  panel_id: string;
+  name: string;
+  role: string | null;
+  bio: string | null;
+  is_moderator: boolean;
+  display_order: number;
+}
+
 export interface Venue {
   id: string;
   edition_id: string;
