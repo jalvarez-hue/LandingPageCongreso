@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { KeyboardEvent, CSSProperties } from 'react';
+import type { KeyboardEvent } from 'react';
 import { editions, panelsByEdition } from '../../data/panels';
 import { supabase } from '../../lib/supabaseClient';
 import type { CongressPanel, EditionId } from '../../types/congress';
@@ -94,10 +94,6 @@ export function PanelsSection() {
           <div role="tablist" aria-label="Edición" className="cn-style-cb0a5620">
             {editions.map((edition) => {
               const selected = edition.id === editionId;
-              const style: CSSProperties = {
-                backgroundColor: selected ? 'var(--cn-color-lime)' : 'transparent',
-                color: selected ? 'var(--cn-color-deep)' : 'var(--cn-color-white)',
-              };
 
               return (
                 <button
@@ -110,7 +106,6 @@ export function PanelsSection() {
                   tabIndex={selected ? 0 : -1}
                   onClick={() => selectEdition(edition.id)}
                   onKeyDown={onTabKeyDown}
-                  style={style}
                   className="cn-style-55c02f16"
                 >
                   {edition.label}
@@ -130,10 +125,6 @@ export function PanelsSection() {
               <div className="cn-style-8cc054d6">
                 {panels.map((panel) => {
                   const selected = panel.id === selectedPanel?.id;
-                  const style: CSSProperties = {
-                    backgroundColor: selected ? 'var(--cn-color-lime)' : 'transparent',
-                    color: selected ? 'var(--cn-color-deep)' : 'var(--cn-color-white)',
-                  };
 
                   return (
                     <button
@@ -141,10 +132,9 @@ export function PanelsSection() {
                       type="button"
                       aria-pressed={selected}
                       onClick={() => setSelectedPanelId(panel.id)}
-                      style={style}
                       className="cn-style-e2f16d24"
                     >
-                      <span className="cn-style-948f1a7b">{panel.track}</span>
+                      <span className="cn-style-948f1a7b">{panel.id}</span>
                       <span className="cn-style-a8eb6a4e">{panel.title}</span>
                     </button>
                   );

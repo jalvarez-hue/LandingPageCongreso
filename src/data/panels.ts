@@ -3,7 +3,7 @@ import type { CongressPanel, EditionId } from '../types/congress';
 export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly CongressPanel[]> = {
   "mer": [
     {
-      "id": "relaci-n-1",
+      "id": "01",
       "track": "Relación",
       "title": "Experiencia, eficiencia y confianza: claves en la relación hospital–aseguradora",
       "moderator": {
@@ -30,7 +30,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "-tica-2",
+      "id": "02",
       "track": "Ética",
       "title": "Triángulo ético: entre el cliente, la aseguradora y los agentes",
       "moderator": {
@@ -57,7 +57,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "costos-3",
+      "id": "03",
       "track": "Costos",
       "title": "Mitos y realidades sobre el costo médico: hospitales, aseguradoras y actuarios debaten las causas y consecuencias del alza",
       "moderator": {
@@ -84,7 +84,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "tecnolog-a-4",
+      "id": "04",
       "track": "Tecnología",
       "title": "Nuevas tecnologías médicas de alto costo y su impacto en las primas y la siniestralidad",
       "moderator": {
@@ -115,7 +115,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "operaci-n-5",
+      "id": "05",
       "track": "Operación",
       "title": "Mapa de fricciones en la operación diaria: equipos mixtos hospital–aseguradora identifican obstáculos y duplicidades",
       "moderator": {
@@ -142,7 +142,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "colaboraci-n-6",
+      "id": "06",
       "track": "Colaboración",
       "title": "Modelos de colaboración exitosos entre aseguradoras y hospitales",
       "moderator": {
@@ -173,7 +173,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "codificaci-n-7",
+      "id": "07",
       "track": "Codificación",
       "title": "Un aliado necesario: codificación para servicios y procedimientos",
       "moderator": {
@@ -200,7 +200,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "experiencia-8",
+      "id": "08",
       "track": "Experiencia",
       "title": "La experiencia del asegurado: casos de éxito",
       "moderator": {
@@ -229,7 +229,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
   ],
   "mty": [
     {
-      "id": "estrategia-1",
+      "id": "01",
       "track": "Estrategia",
       "title": "¿Aliados o adversarios? La nueva realidad entre hospitales y aseguradoras",
       "moderator": {
@@ -256,7 +256,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "financiero-2",
+      "id": "02",
       "track": "Financiero",
       "title": "Costo médico al alza: ¿responsabilidad compartida?",
       "moderator": {
@@ -283,7 +283,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "operativo-3",
+      "id": "03",
       "track": "Operativo",
       "title": "¿Ha muerto el modelo de pago por uso? ¿Estamos listos para el pago basado en valor?",
       "moderator": {
@@ -310,7 +310,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "tecnolog-a-4",
+      "id": "04",
       "track": "Tecnología",
       "title": "IA en seguros de salud: ¿revolución real o promesa inflada? Casos de uso reales",
       "moderator": {
@@ -341,7 +341,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "experiencia-5",
+      "id": "05",
       "track": "Experiencia",
       "title": "¿Es la interoperabilidad el eslabón perdido entre hospitales y aseguradoras?",
       "moderator": {
@@ -368,7 +368,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "producto-6",
+      "id": "06",
       "track": "Producto",
       "title": "¿Hacia dónde debe evolucionar el GMM en México?",
       "moderator": {
@@ -395,7 +395,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "experiencia-internacional-7",
+      "id": "07",
       "track": "Experiencia internacional",
       "title": "Lecciones globales: ¿qué modelos podrían funcionar en México?",
       "moderator": {
@@ -422,7 +422,7 @@ export const panelsByEdition: Record<Exclude<EditionId, 'prox'>, readonly Congre
       ]
     },
     {
-      "id": "visi-n-8",
+      "id": "08",
       "track": "Visión",
       "title": "¿Qué necesita el ramo para sobrevivir los próximos 10 años?",
       "moderator": {

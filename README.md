@@ -18,7 +18,18 @@ npm run preview
 
 ## Supabase y administración
 
-Define `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en el entorno de Vite, y ejecuta [supabase/congreso.sql](supabase/congreso.sql) en el SQL Editor de Supabase.
+Define `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en un archivo `.env.local` en la raíz del proyecto:
+
+```dotenv
+VITE_SUPABASE_URL=https://TU_PROYECTO.supabase.co
+VITE_SUPABASE_ANON_KEY=TU_CLAVE_PUBLICA_ANON
+```
+
+Sustituye los valores de ejemplo por la URL y la clave pública `anon` de tu proyecto Supabase. No uses una clave `service_role`: Vite expone las variables `VITE_*` al navegador. El archivo `.env.local` está excluido de Git; un archivo llamado `env` (sin el punto inicial) no se carga automáticamente.
+
+Reinicia `npm run dev` después de modificar estas variables. Para producción, defínelas en el entorno de compilación y vuelve a ejecutar `npm run build`.
+
+Ejecuta [supabase/congreso.sql](supabase/congreso.sql) en el SQL Editor de Supabase y revisa las políticas RLS antes de habilitar acceso público.
 
 El panel administrativo está disponible en `/#admin`. Permite autenticar usuarios y gestionar patrocinadores, paneles, sedes, medios y mensajes de contacto.
 
