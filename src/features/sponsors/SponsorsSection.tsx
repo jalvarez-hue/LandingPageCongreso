@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { sponsorLogos, type SponsorLogo } from '../../data/sponsors';
 import { supabase } from '../../lib/supabaseClient';
 import styles from './SponsorsSection.module.css';
@@ -90,7 +90,7 @@ export function SponsorsSection() {
         <div className="cn-style-ed1f3634">
           <SponsorTier label="Patrocinador Diamante" logos={diamondLogos} />
           <SponsorTier label="Patrocinador Oro" logos={goldLogos} />
-          <SponsorTier label="Patrocinador Plata" logos={silverLogos} marquee />
+          <SponsorTier label="Patrocinador Plata" logos={silverLogos} />
         </div>
       </div>
     </section>
@@ -100,49 +100,65 @@ export function SponsorsSection() {
 interface SponsorTierProps {
   label: string;
   logos: readonly SponsorLogo[];
-  marquee?: boolean;
 }
 
-function SponsorTier({ label, logos, marquee = false }: SponsorTierProps) {
+function SponsorTier({ label, logos }: SponsorTierProps) {
+  const viewport = useRef<HTMLDivElement>(null);
+  const isCarousel = logos.length > 6;
+
+  const scroll = (direction: number) => {
+    const element = viewport.current;
+    if (element) element.scrollBy({ left: direction * element.clientWidth });
+  };
+
+  if (logos.length === 0) return null;
+
   return (
-    <div className="cn-style-f0576fcc">
+    <div className={styles['cn-sponsor-tier']}>
       <div className="cn-style-f5af09c0">
         <span className="cn-style-3da7a6ce">{label}</span>
         <span className="cn-style-da577a08" />
       </div>
-      <div className={marquee ? 'cn-style-82ff934b cn-voces' : 'cn-style-52043572'}>
-        <div className={marquee ? 'cn-style-51eb415b cn-voces-track' : 'cn-style-52043572'}>
-          {logos.map((sponsor) => (
-            <SponsorLogo key={sponsor.id} sponsor={sponsor} marquee={marquee} />
-          ))}
-          {marquee &&
-            logos.map((sponsor) => (
-              <SponsorLogo key={`${sponsor.id}-repeat`} sponsor={sponsor} marquee duplicate />
-            ))}
-        </div>
+      <div
+        ref={viewport}
+        className={isCarousel ? styles['cn-sponsor-carousel'] : styles['cn-sponsor-grid']}
+        role={isCarousel ? 'region' : undefined}
+        aria-roledescription={isCarousel ? 'carrusel' : undefined}
+        aria-label={isCarousel ? label : undefined}
+        tabIndex={isCarousel ? 0 : undefined}
+      >
+        {logos.map((sponsor) => (
+          <SponsorLogo key={sponsor.id} sponsor={sponsor} />
+        ))}
       </div>
+      {isCarousel && (
+        <div className={styles['cn-sponsor-controls']}>
+          <button type="button" onClick={() => scroll(-1)} aria-label={`Anteriores: ${label}`} className={styles['cn-sponsor-control']}>
+            <span aria-hidden="true">←</span>
+          </button>
+          <button type="button" onClick={() => scroll(1)} aria-label={`Siguientes: ${label}`} className={styles['cn-sponsor-control']}>
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 interface SponsorLogoProps {
   sponsor: SponsorLogo;
-  marquee: boolean;
-  duplicate?: boolean;
 }
 
-function SponsorLogo({ sponsor, marquee, duplicate = false }: SponsorLogoProps) {
-  const className = marquee ? 'cn-style-ba11f8ef' : 'cn-style-ef40d51d';
-
+function SponsorLogo({ sponsor }: SponsorLogoProps) {
   return (
-    <div className={className} aria-hidden={duplicate || undefined}>
+    <div className={styles['cn-sponsor-card']}>
       <img
         src={sponsor.src}
-        alt={duplicate ? '' : sponsor.name}
+        alt={sponsor.name}
         width="360"
         height="160"
         loading="lazy"
-        className="cn-style-7fd1c857"
+        className={styles['cn-sponsor-logo']}
       />
     </div>
   );
