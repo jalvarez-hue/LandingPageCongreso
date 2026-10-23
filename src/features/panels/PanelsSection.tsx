@@ -1,33 +1,50 @@
 import { useEffect, useState } from 'react';
-import type { KeyboardEvent } from 'react';
-import { editions, panelsByEdition } from '../../data/panels';
+import type { KeyboardEvent, CSSProperties } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import type { CongressPanel, EditionId } from '../../types/congress';
 import styles from './PanelsSection.module.css';
 
+type EditionOption = { id: EditionId; label: string };
+
 export function PanelsSection() {
   const [editionId, setEditionId] = useState<EditionId>('mty');
-  const [selectedPanelId, setSelectedPanelId] = useState(panelsByEdition.mty[0].id);
+  const [selectedPanelId, setSelectedPanelId] = useState('');
+  const [editions, setEditions] = useState<readonly EditionOption[]>([]);
   const [remotePanels, setRemotePanels] = useState<Partial<Record<EditionId, readonly CongressPanel[]>>>({});
-  const panels = editionId === 'prox'
-    ? []
-    : remotePanels[editionId] ?? panelsByEdition[editionId];
+  const [isLoading, setIsLoading] = useState(true);
+  const panels = remotePanels[editionId] ?? [];
   const selectedPanel =
     panels.find((panel) => panel.id === selectedPanelId) ?? panels[0];
 
   useEffect(() => {
     const client = supabase;
-    if (!client) return;
+    if (!client) {
+      setIsLoading(false);
+      return;
+    }
 
     const loadPanels = async () => {
       const [editionsResult, panelsResult] = await Promise.all([
-        client.from('congress_editions').select('id, slug'),
+        client.from('congress_editions').select('id, slug, year, city'),
         client.from('panels').select('id, edition_id, track, title, panel_speakers(id, name, role, is_moderator, display_order)').eq('is_published', true).order('display_order'),
       ]);
-      if (editionsResult.error || panelsResult.error) return;
+      if (editionsResult.error || panelsResult.error) {
+        setIsLoading(false);
+        return;
+      }
+
+      const remoteEditions = editionsResult.data as { id: string; slug: string; year: number; city: string }[];
+      const availableEditions = remoteEditions
+        .map((edition): EditionOption | null => {
+          const targetEdition = edition.slug.startsWith('mer-') ? 'mer' : edition.slug.startsWith('mty-') ? 'mty' : edition.slug.startsWith('prox-') ? 'prox' : undefined;
+          return targetEdition ? { id: targetEdition, label: `${edition.city} ${edition.year}` } : null;
+        })
+        .filter((edition): edition is EditionOption => edition !== null)
+        .sort((left, right) => ['mer', 'mty', 'prox'].indexOf(left.id) - ['mer', 'mty', 'prox'].indexOf(right.id));
+      setEditions(availableEditions);
 
       const editionIds = new Map(
-        (editionsResult.data as { id: string; slug: string }[]).map((edition) => [edition.id, edition.slug]),
+        remoteEditions.map((edition) => [edition.id, edition.slug]),
       );
       const mapped: Partial<Record<EditionId, CongressPanel[]>> = {};
       for (const panel of panelsResult.data as { id: string; edition_id: string; track: string; title: string; panel_speakers: { id: string; name: string; role: string | null; is_moderator: boolean; display_order: number }[] }[]) {
@@ -48,6 +65,7 @@ export function PanelsSection() {
       setRemotePanels(mapped);
       const firstPanel = mapped.mty?.[0];
       if (firstPanel) setSelectedPanelId(firstPanel.id);
+      setIsLoading(false);
     };
 
     void loadPanels();
@@ -55,9 +73,11 @@ export function PanelsSection() {
 
   const selectEdition = (id: EditionId) => {
     setEditionId(id);
-    const firstPanel = remotePanels[id]?.[0] ?? (id === 'prox' ? undefined : panelsByEdition[id][0]);
+    const firstPanel = remotePanels[id]?.[0];
     if (firstPanel) {
       setSelectedPanelId(firstPanel.id);
+    } else {
+      setSelectedPanelId('');
     }
   };
 
@@ -94,6 +114,10 @@ export function PanelsSection() {
           <div role="tablist" aria-label="Edición" className="cn-style-cb0a5620">
             {editions.map((edition) => {
               const selected = edition.id === editionId;
+              const style: CSSProperties = {
+                backgroundColor: selected ? 'var(--cn-color-lime)' : 'transparent',
+                color: selected ? 'var(--cn-color-deep)' : 'var(--cn-color-white)',
+              };
 
               return (
                 <button
@@ -106,6 +130,7 @@ export function PanelsSection() {
                   tabIndex={selected ? 0 : -1}
                   onClick={() => selectEdition(edition.id)}
                   onKeyDown={onTabKeyDown}
+                  style={style}
                   className="cn-style-55c02f16"
                 >
                   {edition.label}
@@ -120,11 +145,19 @@ export function PanelsSection() {
           role="tabpanel"
           aria-labelledby={`edition-tab-${editionId}`}
         >
-          {panels.length > 0 ? (
+          {isLoading ? (
+            <div className="cn-style-d77cd510">
+              <span className="cn-style-acffba63">Cargando paneles...</span>
+            </div>
+          ) : panels.length > 0 ? (
             <div className="cn-style-e271afea">
               <div className="cn-style-8cc054d6">
                 {panels.map((panel) => {
                   const selected = panel.id === selectedPanel?.id;
+                  const style: CSSProperties = {
+                    backgroundColor: selected ? 'var(--cn-color-lime)' : 'transparent',
+                    color: selected ? 'var(--cn-color-deep)' : 'var(--cn-color-white)',
+                  };
 
                   return (
                     <button
@@ -132,9 +165,10 @@ export function PanelsSection() {
                       type="button"
                       aria-pressed={selected}
                       onClick={() => setSelectedPanelId(panel.id)}
+                      style={style}
                       className="cn-style-e2f16d24"
                     >
-                      <span className="cn-style-948f1a7b">{panel.id}</span>
+                      <span className="cn-style-948f1a7b">{panel.track}</span>
                       <span className="cn-style-a8eb6a4e">{panel.title}</span>
                     </button>
                   );
@@ -145,7 +179,7 @@ export function PanelsSection() {
                   <div className="cn-style-e10b33e8">
                     <span className="cn-style-bdc918fa">{selectedPanel.track}</span>
                     <span className="cn-style-f9eb89cc">
-                      {`Panel ${panels.indexOf(selectedPanel) + 1} · ${editionId === 'mer' ? 'Mérida 2025' : 'Monterrey 2026'}`}
+                      {`Panel ${panels.indexOf(selectedPanel) + 1} · ${editions.find((edition) => edition.id === editionId)?.label ?? ''}`}
                     </span>
                   </div>
                   <h3 className="cn-style-9deacf69">{selectedPanel.title}</h3>
