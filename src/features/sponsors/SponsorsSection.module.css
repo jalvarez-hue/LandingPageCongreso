@@ -26,19 +26,54 @@
 }
 
 .cn-sponsor-grid,
-.cn-sponsor-carousel {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
+.cn-sponsor-marquee {
   gap: 12px;
   min-width: 0;
 }
 
-.cn-sponsor-carousel {
-  grid-auto-columns: calc((100% - 60px) / 6);
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
+.cn-sponsor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+}
+
+.cn-sponsor-marquee {
+  overflow: hidden;
+}
+
+.cn-sponsor-marquee-track,
+.cn-sponsor-marquee-group {
+  display: flex;
+  width: max-content;
+}
+
+.cn-sponsor-marquee-track {
+  animation: cn-sponsor-marquee 60s linear infinite;
+}
+
+.cn-sponsor-marquee-group {
+  flex: 0 0 auto;
+  gap: 12px;
+  padding-right: 12px;
+}
+
+.cn-sponsor-marquee:hover .cn-sponsor-marquee-track,
+.cn-sponsor-marquee:focus .cn-sponsor-marquee-track {
+  animation-play-state: paused;
+}
+
+.cn-sponsor-marquee .cn-sponsor-card {
+  flex: 0 0 clamp(160px, calc((min(90vw, var(--cn-content-width)) - 60px) / 6), 240px);
+  min-height: 110px;
+}
+
+.cn-sponsor-marquee .cn-sponsor-logo {
+  max-height: 72px;
+}
+
+@keyframes cn-sponsor-marquee {
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 .cn-sponsor-card {
@@ -52,7 +87,6 @@
   justify-content: center;
   padding: clamp(8px, 1.5vw, 20px);
   box-sizing: border-box;
-  scroll-snap-align: start;
 }
 
 .cn-sponsor-logo {
@@ -62,25 +96,7 @@
   object-fit: contain;
 }
 
-.cn-sponsor-controls {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.cn-sponsor-control {
-  min-width: 44px;
-  min-height: 44px;
-  border: 1px solid var(--cn-color-forest);
-  border-radius: 6px;
-  background: var(--cn-color-white);
-  color: var(--cn-color-forest);
-  font: inherit;
-  cursor: pointer;
-}
-
-.cn-sponsor-control:focus-visible,
-.cn-sponsor-carousel:focus-visible {
+.cn-sponsor-marquee:focus-visible {
   outline: 3px solid var(--cn-color-forest);
   outline-offset: 3px;
 }
@@ -95,13 +111,21 @@
     grid-column: 1 / -1;
   }
 
-  .cn-sponsor-carousel {
-    grid-auto-columns: calc((100% - 12px) / 2);
+  .cn-sponsor-marquee .cn-sponsor-card {
+    flex-basis: clamp(140px, calc((90vw - 12px) / 2), 240px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cn-sponsor-carousel {
-    scroll-behavior: auto;
+  .cn-sponsor-marquee {
+    overflow-x: auto;
+  }
+
+  .cn-sponsor-marquee-track {
+    animation: none;
+  }
+
+  .cn-sponsor-marquee-group[aria-hidden='true'] {
+    display: none;
   }
 }

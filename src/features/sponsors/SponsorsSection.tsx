@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { sponsorLogos, type SponsorLogo } from '../../data/sponsors';
 import { supabase } from '../../lib/supabaseClient';
 import styles from './SponsorsSection.module.css';
@@ -103,13 +103,7 @@ interface SponsorTierProps {
 }
 
 function SponsorTier({ label, logos }: SponsorTierProps) {
-  const viewport = useRef<HTMLDivElement>(null);
   const isCarousel = logos.length > 6;
-
-  const scroll = (direction: number) => {
-    const element = viewport.current;
-    if (element) element.scrollBy({ left: direction * element.clientWidth });
-  };
 
   if (logos.length === 0) return null;
 
@@ -120,27 +114,30 @@ function SponsorTier({ label, logos }: SponsorTierProps) {
         <span className="cn-style-da577a08" />
       </div>
       <div
-        ref={viewport}
-        className={isCarousel ? styles['cn-sponsor-carousel'] : styles['cn-sponsor-grid']}
+        className={isCarousel ? styles['cn-sponsor-marquee'] : styles['cn-sponsor-grid']}
         role={isCarousel ? 'region' : undefined}
         aria-roledescription={isCarousel ? 'carrusel' : undefined}
         aria-label={isCarousel ? label : undefined}
+        aria-live={isCarousel ? 'off' : undefined}
         tabIndex={isCarousel ? 0 : undefined}
       >
-        {logos.map((sponsor) => (
-          <SponsorLogo key={sponsor.id} sponsor={sponsor} />
-        ))}
+        {isCarousel ? (
+          <div className={styles['cn-sponsor-marquee-track']}>
+            <div className={styles['cn-sponsor-marquee-group']}>
+              {logos.map((sponsor) => (
+                <SponsorLogo key={sponsor.id} sponsor={sponsor} />
+              ))}
+            </div>
+            <div className={styles['cn-sponsor-marquee-group']} aria-hidden="true">
+              {logos.map((sponsor) => (
+                <SponsorLogo key={`duplicate-${sponsor.id}`} sponsor={sponsor} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          logos.map((sponsor) => <SponsorLogo key={sponsor.id} sponsor={sponsor} />)
+        )}
       </div>
-      {isCarousel && (
-        <div className={styles['cn-sponsor-controls']}>
-          <button type="button" onClick={() => scroll(-1)} aria-label={`Anteriores: ${label}`} className={styles['cn-sponsor-control']}>
-            <span aria-hidden="true">←</span>
-          </button>
-          <button type="button" onClick={() => scroll(1)} aria-label={`Siguientes: ${label}`} className={styles['cn-sponsor-control']}>
-            <span aria-hidden="true">→</span>
-          </button>
-        </div>
-      )}
     </div>
   );
 }
