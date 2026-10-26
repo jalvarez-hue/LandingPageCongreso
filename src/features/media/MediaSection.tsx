@@ -66,7 +66,6 @@ export function MediaSection() {
                   ) : (
                     <img src={item.url} alt={item.alt_text ?? item.title ?? 'Recurso multimedia del congreso'} loading="lazy" width="240" height="160" />
                   )}
-                  {item.title && <span className="cn-style-e662d2a7">{item.title}</span>}
                 </div>
               ))
             : mediaPartners.map((partner) => (
