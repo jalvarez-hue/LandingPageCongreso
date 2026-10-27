@@ -58,10 +58,21 @@ export interface Venue {
   address: string;
   description: string | null;
   image_url: string | null;
+  video_url: string | null;
+  video_label: string | null;
   google_maps_url: string | null;
   latitude: number | null;
   longitude: number | null;
   is_active: boolean;
+}
+
+export interface VenueAmenity {
+  id: string;
+  edition_id: string;
+  label: string;
+  image_url: string | null;
+  alt_text: string | null;
+  display_order: number;
 }
 
 export interface MediaItem {

@@ -12,6 +12,7 @@ import { StatsSection } from './features/stats/StatsSection';
 import { SponsorshipLevels } from './features/levels/SponsorshipLevels';
 import { ContactForm } from './features/contact/ContactForm';
 import { VenueSection } from './features/venue/VenueSection';
+import { ArchiveSection } from './features/archive/ArchiveSection';
 import type { SponsorshipSelection } from './types/congress';
 import './styles/base.css';
 
@@ -46,6 +47,7 @@ export function App() {
           />
         </SectionBoundary>
         <SectionBoundary title="la sede"><VenueSection /></SectionBoundary>
+        <SectionBoundary title="el archivo de eventos"><ArchiveSection /></SectionBoundary>
         <SectionBoundary title="el formulario de patrocinio">
           <ContactForm selection={selection} onSelectionChange={setSelection} />
         </SectionBoundary>

@@ -1,5 +1,6 @@
 -- Esquema dinamico para Congreso Nacional de Aseguradoras y Hospitales.
 -- Ejecutar en el SQL Editor de Supabase.
+-- Instalaciones anteriores: ejecutar edition-amenities.sql antes de este archivo.
 
 create extension if not exists "uuid-ossp";
 
@@ -99,7 +100,7 @@ create table if not exists public.panel_speakers (
   display_order integer not null default 0
 );
 
--- Sede principal por edicion y sus amenidades/instrucciones.
+-- Sede principal por edicion.
 create table if not exists public.venues (
   id uuid primary key default uuid_generate_v4(),
   edition_id uuid not null references public.congress_editions(id) on delete cascade,
@@ -116,10 +117,21 @@ create table if not exists public.venues (
 
 create table if not exists public.venue_amenities (
   id uuid primary key default uuid_generate_v4(),
-  venue_id uuid not null references public.venues(id) on delete cascade,
+  edition_id uuid not null references public.congress_editions(id) on delete cascade,
   label varchar(255) not null,
   display_order integer not null default 0
 );
+
+-- Compatibilidad con instalaciones existentes y archivo de eventos.
+alter table public.venues
+  add column if not exists video_url text,
+  add column if not exists video_label text;
+alter table public.venue_amenities
+  add column if not exists image_url text,
+  add column if not exists alt_text text;
+
+create index if not exists venue_amenities_edition_order_idx
+  on public.venue_amenities (edition_id, display_order);
 
 -- Incluye videos del archivo, fotos y medios aliados.
 create table if not exists public.media_items (
@@ -248,8 +260,8 @@ do $$
 begin
   create policy "Public can read venue amenities" on public.venue_amenities
     for select using (exists (
-      select 1 from public.venues v
-      where v.id = venue_id and v.is_active = true
+      select 1 from public.congress_editions e
+      where e.id = edition_id and e.status in ('published', 'archived')
     ));
 exception when duplicate_object then null;
 end $$;

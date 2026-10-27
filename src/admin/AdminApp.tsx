@@ -13,6 +13,7 @@ import type {
   Sponsor,
   Tier,
   Venue,
+  VenueAmenity,
 } from './adminTypes';
 import styles from './AdminApp.module.css';
 
@@ -119,7 +120,7 @@ export function AdminApp() {
           {section === 'editions' && <EditionsAdmin />}
           {section === 'sponsors' && <SponsorsAdmin />}
           {section === 'panels' && <PanelsAdmin />}
-          {section === 'venues' && <VenuesAdmin />}
+          {section === 'venues' && <><VenuesAdmin /><VenueAmenitiesAdmin /></>}
           {section === 'media' && <MediaAdmin />}
           {section === 'messages' && <MessagesAdmin />}
           {section === 'errors' && <ErrorsAdmin />}
@@ -517,14 +518,122 @@ function PanelsAdmin() {
 }
 
 function VenuesAdmin() {
-  const blank = { edition_id: '', name: '', address: '', description: '', image_url: '', google_maps_url: '', latitude: '', longitude: '', is_active: true };
-  const [rows, setRows] = useState<Venue[]>([]); const [editions, setEditions] = useState<Edition[]>([]); const [editing, setEditing] = useState<Venue | null>(null); const [form, setForm] = useState(blank); const [notice, setNotice] = useState('');
-  const load = async () => { if (!supabase) return; const [venues, editionRows] = await Promise.all([supabase.from('venues').select('*').order('updated_at', { ascending: false }), supabase.from('congress_editions').select('id, slug, year, city, status').eq('status', 'draft').order('year', { ascending: false })]); if (!venues.error) setRows((venues.data ?? []) as Venue[]); if (!editionRows.error) setEditions((editionRows.data ?? []) as Edition[]); };
+  const blank = { edition_id: '', name: '', address: '', description: '', image_url: '', video_url: '', video_label: '', google_maps_url: '', latitude: '', longitude: '', is_active: true };
+  const [rows, setRows] = useState<Venue[]>([]);
+  const [editions, setEditions] = useState<Edition[]>([]);
+  const [editing, setEditing] = useState<Venue | null>(null);
+  const [form, setForm] = useState(blank);
+  const [notice, setNotice] = useState('');
+  const load = async () => {
+    if (!supabase) return;
+    const [venues, editionRows] = await Promise.all([
+      supabase.from('venues').select('*').order('updated_at', { ascending: false }),
+      supabase.from('congress_editions').select('id, slug, year, city, status').order('year', { ascending: false }),
+    ]);
+    if (venues.error) setNotice(toGenericError(venues.error, 'admin.venues.load'));
+    else setRows((venues.data ?? []) as Venue[]);
+    if (editionRows.error) setNotice(toGenericError(editionRows.error, 'admin.venues.load-editions'));
+    else setEditions((editionRows.data ?? []) as Edition[]);
+  };
   useEffect(() => { void load(); }, []);
-  const edit = (row: Venue) => { setEditing(row); setForm({ ...row, description: row.description ?? '', image_url: row.image_url ?? '', google_maps_url: row.google_maps_url ?? '', latitude: row.latitude?.toString() ?? '', longitude: row.longitude?.toString() ?? '' }); };
-  const submit = async (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); if (!supabase) return; const payload = { ...form, description: form.description || null, image_url: form.image_url || null, google_maps_url: form.google_maps_url || null, latitude: form.latitude ? Number(form.latitude) : null, longitude: form.longitude ? Number(form.longitude) : null }; const result = editing ? await supabase.from('venues').update(payload).eq('id', editing.id) : await supabase.from('venues').insert(payload); if (result.error) setNotice(toGenericError(result.error, 'admin.venues.save')); else { setNotice(editing ? 'Sede actualizada.' : 'Sede creada.'); setEditing(null); setForm(blank); void load(); } };
+  const edit = (row: Venue) => {
+    setEditing(row);
+    setForm({
+      edition_id: row.edition_id, name: row.name, address: row.address,
+      description: row.description ?? '', image_url: row.image_url ?? '',
+      video_url: row.video_url ?? '', video_label: row.video_label ?? '',
+      google_maps_url: row.google_maps_url ?? '', latitude: row.latitude?.toString() ?? '',
+      longitude: row.longitude?.toString() ?? '', is_active: row.is_active,
+    });
+  };
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!supabase) return;
+    const payload = {
+      ...form, description: form.description || null, image_url: form.image_url || null,
+      video_url: form.video_url.trim() || null, video_label: form.video_label.trim() || null,
+      google_maps_url: form.google_maps_url || null,
+      latitude: form.latitude ? Number(form.latitude) : null, longitude: form.longitude ? Number(form.longitude) : null,
+    };
+    const result = editing ? await supabase.from('venues').update(payload).eq('id', editing.id) : await supabase.from('venues').insert(payload);
+    if (result.error) setNotice(toGenericError(result.error, 'admin.venues.save'));
+    else { setNotice(editing ? 'Sede actualizada.' : 'Sede creada.'); setEditing(null); setForm(blank); void load(); }
+  };
   const remove = async (id: string) => { if (supabase && window.confirm('¿Eliminar esta sede?')) { const result = await supabase.from('venues').delete().eq('id', id); setNotice(result.error ? toGenericError(result.error, 'admin.venues.delete') : 'Sede eliminada.'); void load(); } };
-  return <AdminSection title="Sedes" description="Ubicación, imágenes y enlaces del evento."><EditorForm title={editing ? 'Editar sede' : 'Agregar sede'} onSubmit={submit} onCancel={() => { setEditing(null); setForm(blank); }} notice={notice}><div className={styles.formGrid}><Field label="Edición"><select value={form.edition_id} onChange={(event) => setForm({ ...form, edition_id: event.target.value })} required><option value="">Selecciona</option>{editions.map((item) => <option key={item.id} value={item.id}>{item.year} · {item.city}</option>)}</select></Field><Field label="Nombre"><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required /></Field></div><Field label="Dirección"><input value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} required /></Field><Field label="Descripción"><textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></Field><Field label="Imagen URL"><input type="url" value={form.image_url} onChange={(event) => setForm({ ...form, image_url: event.target.value })} /></Field><Field label="Google Maps URL"><input type="url" value={form.google_maps_url} onChange={(event) => setForm({ ...form, google_maps_url: event.target.value })} /></Field><div className={styles.formGrid}><Field label="Latitud"><input type="number" step="any" value={form.latitude} onChange={(event) => setForm({ ...form, latitude: event.target.value })} /></Field><Field label="Longitud"><input type="number" step="any" value={form.longitude} onChange={(event) => setForm({ ...form, longitude: event.target.value })} /></Field></div><label className={styles.check}><input type="checkbox" checked={form.is_active} onChange={(event) => setForm({ ...form, is_active: event.target.checked })} /> Activa</label></EditorForm><DataTable columns={['Nombre', 'Edición', 'Dirección', 'Estado', 'Acciones']}>{rows.map((row) => <tr key={row.id}><td>{row.name}</td><td>{editions.find((edition) => edition.id === row.edition_id)?.city ?? '—'}</td><td>{row.address}</td><td>{row.is_active ? 'Activa' : 'Oculta'}</td><td><RowActions onEdit={() => edit(row)} onDelete={() => void remove(row.id)} /></td></tr>)}</DataTable></AdminSection>;
+  return <AdminSection title="Sedes" description="Ubicación y archivo de eventos. Las sedes activas de ediciones archivadas aparecen en Revivir Eventos.">
+    <EditorForm title={editing ? 'Editar sede' : 'Agregar sede'} onSubmit={submit} onCancel={() => { setEditing(null); setForm(blank); }} notice={notice}>
+      <div className={styles.formGrid}>
+        <Field label="Edición"><select value={form.edition_id} onChange={(event) => setForm({ ...form, edition_id: event.target.value })} required><option value="">Selecciona</option>{editions.map((item) => <option key={item.id} value={item.id}>{item.year} · {item.city} ({item.status})</option>)}</select></Field>
+        <Field label="Nombre"><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required /></Field>
+      </div>
+      <Field label="Dirección (opcional para ediciones archivadas)"><input value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} required={editions.find((edition) => edition.id === form.edition_id)?.status !== 'archived'} /></Field>
+      <Field label="Descripción"><textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></Field>
+      <Field label="URL de imagen / portada del video"><input value={form.image_url} onChange={(event) => setForm({ ...form, image_url: event.target.value })} placeholder="https://… o /assets/imagen.jpg" /></Field>
+      <Field label="URL del video del evento"><input value={form.video_url} onChange={(event) => setForm({ ...form, video_url: event.target.value })} placeholder="https://… o /assets/video.mp4" /></Field>
+      <Field label="Etiqueta accesible del video"><input value={form.video_label} onChange={(event) => setForm({ ...form, video_label: event.target.value })} placeholder="Video de Mérida 2025" /></Field>
+      <Field label="Google Maps URL"><input type="url" value={form.google_maps_url} onChange={(event) => setForm({ ...form, google_maps_url: event.target.value })} /></Field>
+      <div className={styles.formGrid}>
+        <Field label="Latitud"><input type="number" step="any" value={form.latitude} onChange={(event) => setForm({ ...form, latitude: event.target.value })} /></Field>
+        <Field label="Longitud"><input type="number" step="any" value={form.longitude} onChange={(event) => setForm({ ...form, longitude: event.target.value })} /></Field>
+      </div>
+      <label className={styles.check}><input type="checkbox" checked={form.is_active} onChange={(event) => setForm({ ...form, is_active: event.target.checked })} /> Activa</label>
+    </EditorForm>
+    <DataTable columns={['Nombre', 'Edición', 'Dirección', 'Estado', 'Acciones']}>{rows.map((row) => <tr key={row.id}><td>{row.name}</td><td>{editions.find((edition) => edition.id === row.edition_id)?.city ?? '—'}</td><td>{row.address}</td><td>{row.is_active ? 'Activa' : 'Oculta'}</td><td><RowActions onEdit={() => edit(row)} onDelete={() => void remove(row.id)} /></td></tr>)}</DataTable>
+  </AdminSection>;
+}
+
+function VenueAmenitiesAdmin() {
+  const blank = { edition_id: '', label: '', image_url: '', alt_text: '', display_order: '0' };
+  const [rows, setRows] = useState<VenueAmenity[]>([]);
+  const [editions, setEditions] = useState<Edition[]>([]);
+  const [editing, setEditing] = useState<VenueAmenity | null>(null);
+  const [form, setForm] = useState(blank);
+  const [notice, setNotice] = useState('');
+
+  const load = async () => {
+    if (!supabase) return;
+    const [amenities, editionRows] = await Promise.all([
+      supabase.from('venue_amenities').select('*').order('display_order'),
+      supabase.from('congress_editions').select('id, slug, year, city, status').order('year', { ascending: false }),
+    ]);
+    if (!amenities.error) setRows((amenities.data ?? []) as VenueAmenity[]);
+    else setNotice(toGenericError(amenities.error, 'admin.venue-amenities.load'));
+    if (!editionRows.error) setEditions((editionRows.data ?? []) as Edition[]);
+    else setNotice(toGenericError(editionRows.error, 'admin.venue-amenities.load-editions'));
+  };
+
+  useEffect(() => { void load(); }, []);
+  const reset = () => { setEditing(null); setForm(blank); };
+  const edit = (row: VenueAmenity) => { setEditing(row); setForm({ edition_id: row.edition_id, label: row.label, image_url: row.image_url ?? '', alt_text: row.alt_text ?? '', display_order: String(row.display_order) }); };
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!supabase) return;
+    const payload = { ...form, image_url: form.image_url.trim() || null, alt_text: form.alt_text.trim() || null, display_order: Number(form.display_order) };
+    const result = editing
+      ? await supabase.from('venue_amenities').update(payload).eq('id', editing.id)
+      : await supabase.from('venue_amenities').insert(payload);
+    if (result.error) setNotice(toGenericError(result.error, 'admin.venue-amenities.save'));
+    else { setNotice(editing ? 'Amenidad actualizada.' : 'Amenidad creada.'); reset(); void load(); }
+  };
+  const remove = async (id: string) => {
+    if (!supabase || !window.confirm('¿Eliminar esta amenidad o foto de la edición?')) return;
+    const result = await supabase.from('venue_amenities').delete().eq('id', id);
+    setNotice(result.error ? toGenericError(result.error, 'admin.venue-amenities.delete') : 'Amenidad eliminada.');
+    if (!result.error) void load();
+  };
+
+  return <AdminSection title="Amenidades y fotos de edición" description="Cada registro pertenece directamente a una edición, no a una sede. Sin imagen: amenidad. Con imagen: fotografía para Revivir Eventos.">
+    <EditorForm title={editing ? 'Editar amenidad o foto' : 'Agregar amenidad o foto'} onSubmit={submit} onCancel={reset} notice={notice}>
+      <div className={styles.formGrid}><Field label="Edición"><select value={form.edition_id} onChange={(event) => setForm({ ...form, edition_id: event.target.value })} required><option value="">Selecciona</option>{editions.map((edition) => <option key={edition.id} value={edition.id}>{edition.year} · {edition.city} ({edition.status})</option>)}</select></Field><Field label="Orden"><input type="number" min="0" value={form.display_order} onChange={(event) => setForm({ ...form, display_order: event.target.value })} /></Field></div>
+      <Field label="Etiqueta"><input value={form.label} onChange={(event) => setForm({ ...form, label: event.target.value })} placeholder="Estacionamiento disponible" required /></Field>
+      <Field label="URL de fotografía (opcional)"><input value={form.image_url} onChange={(event) => setForm({ ...form, image_url: event.target.value })} placeholder="https://… o /assets/foto.jpg" /></Field>
+      <Field label="Texto alternativo de la foto"><input value={form.alt_text} onChange={(event) => setForm({ ...form, alt_text: event.target.value })} placeholder="Si está vacío, se usa la etiqueta" /></Field>
+    </EditorForm>
+    <DataTable columns={['Etiqueta', 'Tipo', 'Edición', 'Orden', 'Acciones']}>{rows.map((row) => {
+      const edition = editions.find((item) => item.id === row.edition_id);
+      return <tr key={row.id}><td>{row.label}</td><td>{row.image_url ? 'Fotografía' : 'Amenidad'}</td><td>{edition ? `${edition.year} · ${edition.city}` : row.edition_id}</td><td>{row.display_order}</td><td><RowActions onEdit={() => edit(row)} onDelete={() => void remove(row.id)} /></td></tr>;
+    })}</DataTable>
+  </AdminSection>;
 }
 
 function MediaAdmin() {
