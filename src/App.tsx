@@ -15,7 +15,6 @@ import { VenueSection } from './features/venue/VenueSection';
 import { ArchiveSection } from './features/archive/ArchiveSection';
 import { SocialBubble } from './features/social/SocialBubble';
 import { supabase } from './lib/supabaseClient';
-import { ArchiveSection } from './features/archive/ArchiveSection';
 import type { SponsorshipSelection } from './types/congress';
 import './styles/base.css';
 
