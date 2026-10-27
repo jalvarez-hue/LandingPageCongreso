@@ -31,7 +31,33 @@ Reinicia `npm run dev` después de modificar estas variables. Para producción, 
 
 Ejecuta [supabase/congreso.sql](supabase/congreso.sql) en el SQL Editor de Supabase y revisa las políticas RLS antes de habilitar acceso público.
 
+Si ya existe la tabla `venue_amenities` relacionada con sedes, ejecuta primero [supabase/edition-amenities.sql](supabase/edition-amenities.sql). Esta migración transaccional e idempotente obtiene `edition_id` de la sede de cada registro y reemplaza la relación `venue_id` por una clave foránea directa a `congress_editions`. Conserva los IDs y el contenido; si algún registro no tiene una edición válida o hay relaciones contradictorias, aborta sin aplicar los cambios. También adapta la política de lectura pública a ediciones publicadas o archivadas. Eliminar una sede ya no elimina las amenidades o fotos; eliminar la edición sí.
+
+Si la API devuelve `PGRST200` al relacionar `congress_editions` con `venue_amenities`, ejecuta el archivo completo [supabase/edition-amenities.sql](supabase/edition-amenities.sql), incluso si ya existe la columna `edition_id`: el script comprueba la clave foránea y la crea si falta, valida los registros y solicita la recarga de la caché de PostgREST al confirmar la transacción. Cambiar los tipos de TypeScript no modifica el esquema de Supabase. Si la clave ya existe y solo falta actualizar la caché, ejecuta `NOTIFY pgrst, 'reload schema';` y vuelve a cargar la página.
+
 El panel administrativo está disponible en `/#admin`. Permite autenticar usuarios y gestionar patrocinadores, paneles, sedes, medios y mensajes de contacto.
+
+### Burbuja de redes sociales (configuración global)
+
+Ejecuta o vuelve a ejecutar [supabase/social-settings.sql](supabase/social-settings.sql) tanto en instalaciones nuevas como existentes. Crea `social_links`, una tabla global independiente de las ediciones que permite guardar múltiples enlaces, incluso más de uno por red. El script importa automáticamente la configuración anterior de `social_settings` sin eliminarla ni sobrescribir enlaces; en instalaciones nuevas agrega un WhatsApp de ejemplo desactivado. El acceso público solo puede leer enlaces activos y la administración autenticada puede gestionarlos. El script es transaccional, idempotente y recarga la caché de PostgREST.
+
+En **Configuración global** del administrador, agrega un enlace por cada perfil o contacto, elige la red, proporciona su URL HTTPS y configura la etiqueta accesible y el orden. WhatsApp admite `https://api.whatsapp.com/send?phone=NUMERO` o `https://wa.me/NUMERO`, con número internacional de 7 a 15 dígitos, sin espacios ni signos. Telegram admite perfiles y canales en `https://t.me/...` o `https://telegram.me/...`. Facebook admite páginas y perfiles en `https://facebook.com/...` o `https://fb.com/...`. Activa **Mostrar en la landing** para cada enlace que deba publicarse. El registro inicial está desactivado y conserva un número de ejemplo no válido para evitar redirecciones accidentales.
+
+Un botón discreto aparece fijo en la esquina inferior derecha, también en móvil. Al abrirlo, los enlaces activos se apilan verticalmente con su etiqueta e icono. Escape cierra la lista; esta distribución evita cubrir la página cuando está cerrada y mantiene cada red identificable. Por defecto los enlaces abren en una pestaña nueva con `noopener noreferrer`; cada enlace permite cambiar ese comportamiento. Se consultan al montar la landing: después de guardar, vuelve a la landing o recarga la página para ver los cambios. Si no hay enlaces activos, no se muestra el botón. Los errores se registran en consola y en `app_errors`, sin crear enlaces inválidos. El control es accesible por teclado, tiene foco visible y anuncia si el menú está abierto.
+
+Pruebas de configuración y enlace: `node --test src/features/social/socialSettings.test.mjs`.
+
+### Revivir Eventos
+
+Ejecuta [supabase/archive-events.sql](supabase/archive-events.sql) después del esquema base para ampliar una instalación existente y cargar los videos y fotos originales de Mérida 2025 y Monterrey 2026. El script es transaccional e idempotente: no sobrescribe registros existentes y puede ejecutarse nuevamente sin duplicar sus datos. No modifica el estado de las ediciones; deben estar en `archived` para aparecer. Las direcciones históricas se dejan vacías para no inventar ubicaciones.
+
+La sección consulta las ediciones archivadas, ordenadas por año, con sus fotos asociadas directamente mediante `venue_amenities.edition_id`. Cada edición tiene una sola tarjeta; su descripción y video proceden de su sede activa más recientemente actualizada (desempate por ID). Las fotos se conservan visibles aunque la edición no tenga sede activa. La sede de la edición publicada sigue mostrándose por separado. No hay un arreglo local de respaldo: se muestran los estados de carga, error y archivo vacío.
+
+Desde **Sedes** en el administrador puedes elegir cualquier edición y editar la descripción, la portada (`venues.image_url`), el video (`video_url`) y su etiqueta accesible (`video_label`). El título se construye con el año y la ciudad de `congress_editions`.
+
+En **Amenidades y fotos de edición**, el selector y la tabla identifican la edición (año y ciudad), no la sede. Se pueden capturar registros para cualquier edición, incluso sin sede. Un registro sin `image_url` conserva su función de amenidad y aparece junto a la sede pública de esa misma edición. Un registro con imagen se convierte en una foto del archivo de la edición: `image_url` corresponde a `photos[].src`, `alt_text` a `photos[].alt` (o la etiqueta si no hay texto alternativo), y `display_order` determina el orden. Las fotos no se muestran como amenidades. Los campos multimedia aceptan URLs absolutas o rutas locales como `/assets/foto.jpg`. Si no hay video se muestra la portada, si existe; una galería vacía no genera fotos de relleno.
+
+Pruebas del mapeo por edición: `node --test src/features/archive/archive.test.mjs`.
 
 La sección pública de patrocinadores consulta Supabase al abrir la landing y al volver a la pestaña o recuperar el foco. Los cambios de URL de los logos se reflejan en la siguiente consulta. Si no hay patrocinadores activos con niveles compatibles, se muestran los logos locales; si una consulta falla, se conserva la lista visible y se registra el error en la consola.
 

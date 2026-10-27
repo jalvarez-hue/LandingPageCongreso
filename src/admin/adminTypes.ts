@@ -1,4 +1,4 @@
-export type AdminSection = 'editions' | 'sponsors' | 'panels' | 'venues' | 'media' | 'messages' | 'errors';
+export type AdminSection = 'editions' | 'sponsors' | 'panels' | 'venues' | 'media' | 'messages' | 'errors' | 'settings';
 
 export interface Edition {
   id: string;

@@ -12,6 +12,8 @@ import { StatsSection } from './features/stats/StatsSection';
 import { SponsorshipLevels } from './features/levels/SponsorshipLevels';
 import { ContactForm } from './features/contact/ContactForm';
 import { VenueSection } from './features/venue/VenueSection';
+import { ArchiveSection } from './features/archive/ArchiveSection';
+import { SocialBubble } from './features/social/SocialBubble';
 import { supabase } from './lib/supabaseClient';
 import { ArchiveSection } from './features/archive/ArchiveSection';
 import type { SponsorshipSelection } from './types/congress';
@@ -92,6 +94,7 @@ export function App() {
         <SectionBoundary title="los medios aliados"><MediaSection /></SectionBoundary>
       </main>
       <SectionBoundary title="el pie de página"><SiteFooter /></SectionBoundary>
+      <SectionBoundary title="el contacto por redes sociales"><SocialBubble /></SectionBoundary>
     </div>
   );
 }

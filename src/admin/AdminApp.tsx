@@ -2,6 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import type { FormEvent, ReactNode } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { toGenericError } from '../lib/errorReporter';
+import { isSocialNetwork, parseSocialSettings } from '../features/social/socialSettings';
+import type { SocialNetwork, SocialSettings } from '../features/social/socialSettings';
 import type {
   AdminSection,
   ContactMessage,
@@ -57,6 +59,7 @@ const sections: { id: AdminSection; label: string }[] = [
   { id: 'media', label: 'Medios' },
   { id: 'messages', label: 'Mensajes' },
   { id: 'errors', label: 'Errores' },
+  { id: 'settings', label: 'Configuración global' },
 ];
 
 export function AdminApp() {
@@ -124,11 +127,160 @@ export function AdminApp() {
           {section === 'media' && <MediaAdmin />}
           {section === 'messages' && <MessagesAdmin />}
           {section === 'errors' && <ErrorsAdmin />}
+          {section === 'settings' && <SocialSettingsAdmin />}
         </main>
       </div>
     </div>
     </ToastProvider>
   );
+}
+
+function SocialSettingsAdmin() {
+  const [rows, setRows] = useState<SocialSettings[]>([]);
+  const [form, setForm] = useState<SocialSettings>({
+    id: '',
+    network: 'whatsapp',
+    url: 'https://api.whatsapp.com/send?phone=XXXXXXXXXXX',
+    label: 'Contactar por WhatsApp',
+    is_active: false,
+    open_in_new_tab: true,
+    display_order: 0,
+  });
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [saving, setSaving] = useState(false);
+  const urlExamples: Record<SocialNetwork, string> = {
+    whatsapp: 'https://api.whatsapp.com/send?phone=525512345678',
+    telegram: 'https://t.me/usuario',
+    facebook: 'https://www.facebook.com/pagina',
+  };
+  const networkLabels: Record<SocialNetwork, string> = {
+    whatsapp: 'WhatsApp',
+    telegram: 'Telegram',
+    facebook: 'Facebook',
+  };
+  const changeNetwork = (value: string) => {
+    if (!isSocialNetwork(value) || !form) return;
+    setForm({ ...form, network: value, label: `Contactar por ${networkLabels[value]}` });
+  };
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client) return;
+    const controller = new AbortController();
+    const load = async () => {
+      try {
+        const { data, error } = await client.from('social_links')
+          .select('id, network, url, label, is_active, open_in_new_tab, display_order')
+          .order('display_order').order('id').abortSignal(controller.signal);
+        if (controller.signal.aborted) return;
+        if (error) throw error;
+        setRows((data ?? []).map(parseSocialSettings));
+      } catch (error: unknown) {
+        if (!controller.signal.aborted) setNotice(toGenericError(error, 'admin.social.load'));
+      } finally {
+        if (!controller.signal.aborted) setIsLoaded(true);
+      }
+    };
+    void load();
+    return () => controller.abort();
+  }, []);
+
+  const reset = () => {
+    setForm({
+      id: '',
+      network: 'whatsapp',
+      url: 'https://api.whatsapp.com/send?phone=XXXXXXXXXXX',
+      label: 'Contactar por WhatsApp',
+      is_active: false,
+      open_in_new_tab: true,
+      display_order: rows.length,
+    });
+    setNotice('');
+  };
+
+  const edit = (row: SocialSettings) => {
+    setForm(row);
+    setNotice('');
+  };
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const client = supabase;
+    if (!client || !form || saving) return;
+    let payload: SocialSettings;
+    try {
+      payload = parseSocialSettings({ ...form, id: form.id || 'new', url: form.url.trim() });
+    } catch (error: unknown) {
+      setNotice(error instanceof Error ? error.message : toGenericError(error, 'admin.social.validate'));
+      return;
+    }
+    setSaving(true);
+    let persisted = false;
+    try {
+      const { id, ...values } = payload;
+      const result = id === 'new'
+        ? await client.from('social_links').insert(values)
+        : await client.from('social_links').update(values).eq('id', id);
+      const { error } = result;
+      if (error) throw error;
+      persisted = true;
+      const { data, error: loadError } = await client.from('social_links')
+        .select('id, network, url, label, is_active, open_in_new_tab, display_order')
+        .order('display_order').order('id');
+      if (loadError) throw loadError;
+      setRows((data ?? []).map(parseSocialSettings));
+      reset();
+      setNotice('Enlace guardado. Se aplicará al volver a abrir la landing.');
+    } catch (error: unknown) {
+      const message = toGenericError(error, persisted ? 'admin.social.refresh' : 'admin.social.save');
+      setNotice(persisted ? `El enlace se guardó, pero no se pudo actualizar la lista. ${message}` : message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    const client = supabase;
+    if (!client || !window.confirm('¿Eliminar este enlace de red social?')) return;
+    const { error } = await client.from('social_links').delete().eq('id', id);
+    if (error) {
+      setNotice(toGenericError(error, 'admin.social.delete'));
+      return;
+    }
+    setRows((current) => current.filter((row) => row.id !== id));
+    if (form.id === id) reset();
+    setNotice('Enlace eliminado.');
+  };
+
+  return <AdminSection title="Configuración global" description="Red social de contacto para toda la landing, independiente de las ediciones.">
+    <NoticeToast notice={notice} />
+    <section className={styles.editor}>
+      <h3>{form.id ? 'Editar enlace' : 'Agregar enlace a una red social'}</h3>
+      <p>Agrega una o varias redes. Los enlaces activos se apilan en un menú desplegable en la esquina inferior derecha.</p>
+      <form className={styles.form} onSubmit={(event) => void submit(event)}>
+        <Field label="Red social"><select value={form.network} onChange={(event) => changeNetwork(event.target.value)}><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="facebook">Facebook</option></select></Field>
+        <Field label={`URL HTTPS de ${networkLabels[form.network]}`}><input type="url" required value={form.url} placeholder={urlExamples[form.network]} onChange={(event) => setForm({ ...form, url: event.target.value })} /></Field>
+        <Field label="Etiqueta accesible"><input required value={form.label} onChange={(event) => setForm({ ...form, label: event.target.value })} /></Field>
+        <Field label="Orden en el menú"><input type="number" min="0" step="1" value={form.display_order} onChange={(event) => setForm({ ...form, display_order: Number(event.target.value) })} /></Field>
+        <label className={styles.check}><input type="checkbox" checked={form.is_active} onChange={(event) => setForm({ ...form, is_active: event.target.checked })} /> Mostrar en la landing</label>
+        <label className={styles.check}><input type="checkbox" checked={form.open_in_new_tab} onChange={(event) => setForm({ ...form, open_in_new_tab: event.target.checked })} /> Abrir en una pestaña nueva</label>
+        {notice && <p role="status">{notice}</p>}
+        <div className={styles.formActions}>
+          <button type="submit" className={styles.primaryButton} disabled={saving}>{saving ? 'Guardando…' : 'Guardar enlace'}</button>
+          <button type="button" className={styles.ghostButton} onClick={reset}>Nuevo enlace</button>
+        </div>
+      </form>
+    </section>
+    {!isLoaded ? <p role="status">Cargando redes sociales…</p> : (
+      <DataTable columns={['Red', 'Etiqueta', 'URL', 'Orden', 'Estado', 'Acciones']}>
+        {rows.map((row) => <tr key={row.id}>
+          <td>{networkLabels[row.network]}</td><td>{row.label}</td><td><a href={row.url} target="_blank" rel="noreferrer">{row.url}</a></td><td>{row.display_order}</td><td>{row.is_active ? 'Visible' : 'Oculto'}</td>
+          <td><RowActions onEdit={() => edit(row)} onDelete={() => void remove(row.id)} /></td>
+        </tr>)}
+      </DataTable>
+    )}
+  </AdminSection>;
 }
 
 function EditionsAdmin() {

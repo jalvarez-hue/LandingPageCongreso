@@ -1,6 +1,7 @@
 -- Esquema dinamico para Congreso Nacional de Aseguradoras y Hospitales.
 -- Ejecutar en el SQL Editor de Supabase.
 -- Instalaciones anteriores: ejecutar edition-amenities.sql antes de este archivo.
+-- Configuracion global de contacto: ejecutar tambien social-settings.sql.
 
 create extension if not exists "uuid-ossp";
 
