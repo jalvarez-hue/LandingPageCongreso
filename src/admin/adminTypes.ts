@@ -1,10 +1,13 @@
-export type AdminSection = 'sponsors' | 'panels' | 'venues' | 'media' | 'messages';
+export type AdminSection = 'editions' | 'sponsors' | 'panels' | 'venues' | 'media' | 'messages' | 'errors';
 
 export interface Edition {
   id: string;
   slug: string;
   year: number;
   city: string;
+  venue_name: string | null;
+  starts_on: string | null;
+  ends_on: string | null;
   status: 'draft' | 'published' | 'archived';
 }
 
@@ -87,5 +90,14 @@ export interface ContactMessage {
   status: 'new' | 'read' | 'replied' | 'archived';
   internal_notes: string | null;
   is_read: boolean;
+  created_at: string;
+}
+
+export interface ErrorLog {
+  id: string;
+  context: string;
+  message: string;
+  stack: string | null;
+  path: string | null;
   created_at: string;
 }

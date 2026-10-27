@@ -1,6 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { installGlobalErrorMiddleware } from './lib/errorReporter';
+
+installGlobalErrorMiddleware();
 
 const rootElement = document.getElementById('root');
 

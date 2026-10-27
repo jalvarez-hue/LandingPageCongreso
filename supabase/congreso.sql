@@ -3,6 +3,18 @@
 
 create extension if not exists "uuid-ossp";
 
+create table if not exists public.app_errors (
+  id uuid primary key default uuid_generate_v4(),
+  context text not null,
+  message text not null,
+  stack text,
+  path text,
+  created_at timestamptz not null default timezone('utc'::text, now())
+);
+
+create index if not exists app_errors_created_at_idx
+  on public.app_errors (created_at desc);
+
 -- Ediciones: permite separar Monterrey 2026, Merida 2025 y Guadalajara 2027.
 create table if not exists public.congress_editions (
   id uuid primary key default uuid_generate_v4(),
@@ -16,6 +28,29 @@ create table if not exists public.congress_editions (
   created_at timestamptz not null default timezone('utc'::text, now()),
   updated_at timestamptz not null default timezone('utc'::text, now())
 );
+
+create unique index if not exists congress_editions_one_published_idx
+  on public.congress_editions (status)
+  where status = 'published';
+
+create or replace function public.prevent_published_edition_downgrade()
+returns trigger
+language plpgsql
+as $$
+begin
+  if old.status = 'published'
+    and new.status is distinct from old.status
+    and new.status <> 'archived' then
+    raise exception 'Una edicion publicada solo puede cambiar a archived';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists congress_editions_status_transition on public.congress_editions;
+create trigger congress_editions_status_transition
+before update of status on public.congress_editions
+for each row execute function public.prevent_published_edition_downgrade();
 
 -- Niveles que usa la seccion de patrocinio y el formulario.
 create table if not exists public.sponsorship_tiers (
@@ -162,6 +197,7 @@ alter table public.venues enable row level security;
 alter table public.venue_amenities enable row level security;
 alter table public.media_items enable row level security;
 alter table public.contact_messages enable row level security;
+alter table public.app_errors enable row level security;
 
 do $$
 begin
@@ -229,6 +265,20 @@ do $$
 begin
   create policy "Public can insert contact messages" on public.contact_messages
     for insert with check (true);
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create policy "Public can insert application errors" on public.app_errors
+    for insert with check (true);
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create policy "Authenticated users read application errors" on public.app_errors
+    for select to authenticated using (true);
 exception when duplicate_object then null;
 end $$;
 
