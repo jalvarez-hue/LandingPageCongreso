@@ -12,7 +12,7 @@ import { StatsSection } from './features/stats/StatsSection';
 import { SponsorshipLevels } from './features/levels/SponsorshipLevels';
 import { ContactForm } from './features/contact/ContactForm';
 import { VenueSection } from './features/venue/VenueSection';
-import { ArchiveSection } from './features/archive/ArchiveSection';
+import { supabase } from './lib/supabaseClient';
 import type { SponsorshipSelection } from './types/congress';
 import './styles/base.css';
 
@@ -21,6 +21,43 @@ const initialSelection: SponsorshipSelection = { interest: '', level: '' };
 export function App() {
   const [selection, setSelection] = useState(initialSelection);
   const [isAdmin, setIsAdmin] = useState(() => window.location.hash === '#admin');
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client) return;
+
+    const controller = new AbortController();
+    const loadTitle = async () => {
+      const { count, error } = await client
+        .from('congress_editions')
+        .select('id', { count: 'exact', head: true })
+        .abortSignal(controller.signal);
+
+      if (controller.signal.aborted) return;
+      if (error || count === null) {
+        console.error('No fue posible obtener el total de ediciones del congreso.', error);
+        return;
+      }
+
+      const name = 'Congreso Nacional Aseguradoras y Hospitales';
+      const ordinals: Record<number, string> = {
+        1: '1er',
+        2: '2do',
+        3: '3er',
+        4: '4to',
+        5: '5to',
+        6: '6to',
+        7: '7mo',
+        8: '8vo',
+        9: '9no',
+        10: '10mo',
+      };
+      document.title = count > 0 ? `${ordinals[count] ?? `${count}.º`} ${name}` : name;
+    };
+
+    void loadTitle();
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const onHashChange = () => setIsAdmin(window.location.hash === '#admin');

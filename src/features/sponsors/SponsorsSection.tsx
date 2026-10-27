@@ -18,7 +18,12 @@ export function SponsorsSection() {
 
     const loadSponsors = async () => {
       const [sponsorsResult, tiersResult] = await Promise.all([
-        client.from('sponsors').select('id, name, logo_url, tier_id').eq('is_active', true).order('display_order'),
+        client
+          .from('sponsors')
+          .select('id, name, logo_url, tier_id, congress_editions!inner(status)')
+          .eq('is_active', true)
+          .eq('congress_editions.status', 'published')
+          .order('display_order'),
         client.from('sponsorship_tiers').select('id, code').eq('is_active', true),
       ]);
       if (sponsorsResult.error || tiersResult.error || !sponsorsResult.data?.length) return;

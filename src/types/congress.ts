@@ -5,6 +5,7 @@ export interface Panelist {
 
 export interface CongressPanel {
   id: string;
+  display_order?: number;
   track: string;
   title: string;
   moderator: Panelist;
