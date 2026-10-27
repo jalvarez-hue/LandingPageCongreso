@@ -1,11 +1,71 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { supabase } from '../../lib/supabaseClient';
 import styles from './HeroSection.module.css';
 
 export function HeroSection() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const reducedMotion = useReducedMotion();
   const [isPaused, setIsPaused] = useState(reducedMotion);
+  const [editionDetails, setEditionDetails] = useState<{
+    locationAndDates: string;
+    count: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client) return;
+
+    const controller = new AbortController();
+    const loadEditionDetails = async () => {
+      const { data, count, error } = await client
+        .from('congress_editions')
+        .select('city, year, starts_on, ends_on, status', { count: 'exact' })
+        .order('year', { ascending: false })
+        .abortSignal(controller.signal);
+
+      if (controller.signal.aborted) return;
+      if (error || count === null) {
+        console.error('No fue posible cargar los datos de la edición de portada.', error);
+        return;
+      }
+
+      const edition =
+        data.find((item) => item.status === 'draft') ??
+        data.find((item) => item.status === 'published');
+      if (!edition) return;
+
+      const formatter = new Intl.DateTimeFormat('es-MX', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+      const start = edition.starts_on ? new Date(`${edition.starts_on}T12:00:00`) : null;
+      const end = edition.ends_on ? new Date(`${edition.ends_on}T12:00:00`) : null;
+      if (
+        (start && Number.isNaN(start.getTime())) ||
+        (end && Number.isNaN(end.getTime())) ||
+        (start && end && end < start)
+      ) {
+        console.error('Las fechas de la edición de portada no son válidas.', edition);
+        return;
+      }
+
+      const singleDate = start ?? end;
+      const dates = start && end
+        ? formatter.formatRange(start, end)
+        : singleDate
+          ? formatter.format(singleDate)
+          : String(edition.year);
+      setEditionDetails({
+        locationAndDates: `${edition.city} · ${dates}`,
+        count,
+      });
+    };
+
+    void loadEditionDetails();
+    return () => controller.abort();
+  }, []);
 
   const toggleVideo = () => {
     const video = videoRef.current;
@@ -47,9 +107,15 @@ export function HeroSection() {
       </button>
       <div className="cn-style-ba887944">
         <div className="cn-style-e2c44d03">
-          <span className="cn-style-d1c11def">Guadalajara · 1–4 septiembre 2027</span>
-          <span className="cn-style-6b7ef86d" aria-hidden="true" />
-          <span className="cn-style-f0ce8aeb">3ª edición</span>
+          <span className="cn-style-d1c11def">
+            {editionDetails?.locationAndDates ?? 'Congreso Nacional Aseguradoras y Hospitales'}
+          </span>
+          {editionDetails && editionDetails.count > 0 && (
+            <>
+              <span className="cn-style-6b7ef86d" aria-hidden="true" />
+              <span className="cn-style-f0ce8aeb">{editionDetails.count}ª edición</span>
+            </>
+          )}
         </div>
         <h1 id="inicio-title" className="cn-style-1df813c7">
           El futuro de la salud

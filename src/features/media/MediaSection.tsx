@@ -39,10 +39,16 @@ export function MediaSection() {
     const loadMedia = async () => {
       const { data, error } = await client
         .from('media_items')
-        .select('id, title, media_type, url, thumbnail_url, alt_text')
+        .select('id, title, media_type, url, thumbnail_url, alt_text, congress_editions!inner(status)')
         .eq('is_active', true)
+        .eq('congress_editions.status', 'published')
         .order('display_order');
-      if (!error && data?.length) setRemoteMedia(data as typeof remoteMedia);
+      if (error) {
+        console.error('No fue posible cargar los medios de ediciones publicadas.', error);
+        return;
+      }
+
+      setRemoteMedia((data ?? []) as typeof remoteMedia);
     };
 
     void loadMedia();

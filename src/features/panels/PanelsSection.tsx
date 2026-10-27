@@ -1,18 +1,24 @@
 import { useEffect, useState } from 'react';
 import type { KeyboardEvent, CSSProperties } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import type { CongressPanel, EditionId } from '../../types/congress';
+import type { CongressPanel } from '../../types/congress';
 import styles from './PanelsSection.module.css';
 
-type EditionOption = { id: EditionId; label: string };
+type EditionOption = {
+  id: string;
+  label: string;
+  year: number;
+  status: 'draft' | 'published' | 'archived';
+};
 
 export function PanelsSection() {
-  const [editionId, setEditionId] = useState<EditionId>('mty');
+  const [editionId, setEditionId] = useState('');
   const [selectedPanelId, setSelectedPanelId] = useState('');
   const [editions, setEditions] = useState<readonly EditionOption[]>([]);
-  const [remotePanels, setRemotePanels] = useState<Partial<Record<EditionId, readonly CongressPanel[]>>>({});
+  const [remotePanels, setRemotePanels] = useState<Readonly<Record<string, readonly CongressPanel[]>>>({});
   const [isLoading, setIsLoading] = useState(true);
   const panels = remotePanels[editionId] ?? [];
+  const selectedEdition = editions.find((edition) => edition.id === editionId);
   const selectedPanel =
     panels.find((panel) => panel.id === selectedPanelId) ?? panels[0];
 
@@ -25,45 +31,67 @@ export function PanelsSection() {
 
     const loadPanels = async () => {
       const [editionsResult, panelsResult] = await Promise.all([
-        client.from('congress_editions').select('id, slug, year, city'),
-        client.from('panels').select('id, edition_id, track, title, panel_speakers(id, name, role, is_moderator, display_order)').eq('is_published', true).order('display_order'),
+        client.from('congress_editions').select('id, year, city, status').order('year', { ascending: false }),
+        client
+          .from('panels')
+          .select('id, edition_id, track, title, display_order, panel_speakers(id, name, role, is_moderator, display_order)')
+          .eq('is_published', true)
+          .order('display_order'),
       ]);
       if (editionsResult.error || panelsResult.error) {
         setIsLoading(false);
         return;
       }
 
-      const remoteEditions = editionsResult.data as { id: string; slug: string; year: number; city: string }[];
+      const remoteEditions = editionsResult.data as {
+        id: string;
+        year: number;
+        city: string;
+        status: EditionOption['status'];
+      }[];
       const availableEditions = remoteEditions
-        .map((edition): EditionOption | null => {
-          const targetEdition = edition.slug.startsWith('mer-') ? 'mer' : edition.slug.startsWith('mty-') ? 'mty' : edition.slug.startsWith('prox-') ? 'prox' : undefined;
-          return targetEdition ? { id: targetEdition, label: `${edition.city} ${edition.year}` } : null;
-        })
-        .filter((edition): edition is EditionOption => edition !== null)
-        .sort((left, right) => ['mer', 'mty', 'prox'].indexOf(left.id) - ['mer', 'mty', 'prox'].indexOf(right.id));
+        .slice(0, 3)
+        .map((edition) => ({
+          id: edition.id,
+          label: `${edition.city} ${edition.year}`,
+          year: edition.year,
+          status: edition.status,
+        }))
+        .sort((left, right) => left.year - right.year);
       setEditions(availableEditions);
 
-      const editionIds = new Map(
-        remoteEditions.map((edition) => [edition.id, edition.slug]),
+      const editionById = new Map(
+        availableEditions.map((edition) => [edition.id, edition]),
       );
-      const mapped: Partial<Record<EditionId, CongressPanel[]>> = {};
-      for (const panel of panelsResult.data as { id: string; edition_id: string; track: string; title: string; panel_speakers: { id: string; name: string; role: string | null; is_moderator: boolean; display_order: number }[] }[]) {
-        const slug = editionIds.get(panel.edition_id);
-        const targetEdition = slug?.startsWith('mer-') ? 'mer' : slug?.startsWith('mty-') ? 'mty' : slug?.startsWith('prox-') ? 'prox' : undefined;
-        if (!targetEdition) continue;
+      const mapped: Record<string, CongressPanel[]> = {};
+      for (const panel of panelsResult.data as {
+        id: string;
+        edition_id: string;
+        track: string;
+        title: string;
+        display_order: number;
+        panel_speakers: { id: string; name: string; role: string | null; is_moderator: boolean; display_order: number }[];
+      }[]) {
+        const edition = editionById.get(panel.edition_id);
+        if (!edition || edition.status === 'draft') continue;
         const moderator = panel.panel_speakers.find((speaker) => speaker.is_moderator) ?? panel.panel_speakers[0];
         const panelists = panel.panel_speakers.filter((speaker) => speaker.id !== moderator?.id);
         const mappedPanel: CongressPanel = {
           id: panel.id,
+          display_order: panel.display_order,
           track: panel.track,
           title: panel.title,
           moderator: { name: moderator?.name ?? 'Por confirmar', role: moderator?.role ?? 'Moderación por confirmar' },
           panelists: panelists.map((speaker) => ({ name: speaker.name, role: speaker.role ?? 'Panelista' })),
         };
-        mapped[targetEdition] = [...(mapped[targetEdition] ?? []), mappedPanel];
+        mapped[edition.id] = [...(mapped[edition.id] ?? []), mappedPanel];
       }
       setRemotePanels(mapped);
-      const firstPanel = mapped.mty?.[0];
+      const activeEdition =
+        [...availableEditions].reverse().find((edition) => edition.status === 'published') ??
+        availableEditions[availableEditions.length - 1];
+      const firstPanel = activeEdition ? mapped[activeEdition.id]?.[0] : undefined;
+      setEditionId(activeEdition?.id ?? '');
       if (firstPanel) setSelectedPanelId(firstPanel.id);
       setIsLoading(false);
     };
@@ -71,7 +99,7 @@ export function PanelsSection() {
     void loadPanels();
   }, []);
 
-  const selectEdition = (id: EditionId) => {
+  const selectEdition = (id: string) => {
     setEditionId(id);
     const firstPanel = remotePanels[id]?.[0];
     if (firstPanel) {
@@ -82,6 +110,7 @@ export function PanelsSection() {
   };
 
   const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (editions.length === 0) return;
     const currentIndex = editions.findIndex((edition) => edition.id === editionId);
     let nextIndex = currentIndex;
 
@@ -149,6 +178,15 @@ export function PanelsSection() {
             <div className="cn-style-d77cd510">
               <span className="cn-style-acffba63">Cargando paneles...</span>
             </div>
+          ) : selectedEdition?.status === 'draft' ? (
+            <div className="cn-style-d77cd510">
+              <span className="cn-style-bdd32329">{selectedEdition.label}</span>
+              <span className="cn-style-acffba63">Próximamente</span>
+              <p className="cn-style-6c62e7ce">
+                Muy pronto anunciaremos los paneles y temas de esta edición.
+              </p>
+              <a href="#patrocinio" className="cn-style-d60b5c98">Quiero ser parte</a>
+            </div>
           ) : panels.length > 0 ? (
             <div className="cn-style-e271afea">
               <div className="cn-style-8cc054d6">
@@ -168,7 +206,9 @@ export function PanelsSection() {
                       style={style}
                       className="cn-style-e2f16d24"
                     >
-                      <span className="cn-style-948f1a7b">{panel.track}</span>
+                      <span className="cn-style-948f1a7b">
+                        {String((panel.display_order ?? panels.indexOf(panel)) + 1).padStart(2, '0')}
+                      </span>
                       <span className="cn-style-a8eb6a4e">{panel.title}</span>
                     </button>
                   );
@@ -179,7 +219,7 @@ export function PanelsSection() {
                   <div className="cn-style-e10b33e8">
                     <span className="cn-style-bdc918fa">{selectedPanel.track}</span>
                     <span className="cn-style-f9eb89cc">
-                      {`Panel ${panels.indexOf(selectedPanel) + 1} · ${editions.find((edition) => edition.id === editionId)?.label ?? ''}`}
+                      {`Panel ${panels.indexOf(selectedPanel) + 1} · ${selectedEdition?.label ?? ''}`}
                     </span>
                   </div>
                   <h3 className="cn-style-9deacf69">{selectedPanel.title}</h3>
@@ -209,14 +249,11 @@ export function PanelsSection() {
             </div>
           ) : (
             <div className="cn-style-d77cd510">
-              <span className="cn-style-bdd32329">
-                3ª edición · Guadalajara · 1 al 4 de septiembre 2027
-              </span>
-              <span className="cn-style-acffba63">Próximamente</span>
+              <span className="cn-style-bdd32329">{selectedEdition?.label ?? 'Paneles'}</span>
+              <span className="cn-style-acffba63">Sin paneles disponibles</span>
               <p className="cn-style-6c62e7ce">
-                Muy pronto anunciaremos los paneles y temas de la próxima edición.
+                No hay paneles publicados para esta edición.
               </p>
-              <a href="#patrocinio" className="cn-style-d60b5c98">Quiero ser parte</a>
             </div>
           )}
         </div>
