@@ -48,6 +48,10 @@ export function HeroSection() {
         (start && end && end < start)
       ) {
         console.error('Las fechas de la edición de portada no son válidas.', edition);
+        setEditionDetails({
+          locationAndDates: `${edition.city} · ${edition.year} · Fechas por confirmar`,
+          count,
+        });
         return;
       }
 

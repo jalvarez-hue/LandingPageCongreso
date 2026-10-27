@@ -13,6 +13,7 @@ import { SponsorshipLevels } from './features/levels/SponsorshipLevels';
 import { ContactForm } from './features/contact/ContactForm';
 import { VenueSection } from './features/venue/VenueSection';
 import { supabase } from './lib/supabaseClient';
+import { ArchiveSection } from './features/archive/ArchiveSection';
 import type { SponsorshipSelection } from './types/congress';
 import './styles/base.css';
 
