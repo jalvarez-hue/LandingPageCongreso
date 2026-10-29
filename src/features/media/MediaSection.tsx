@@ -70,13 +70,13 @@ export function MediaSection() {
                   {item.media_type === 'video' ? (
                     <video src={item.url} poster={item.thumbnail_url ?? undefined} controls width="240" height="160" />
                   ) : (
-                    <img src={item.url} alt={item.alt_text ?? item.title ?? 'Recurso multimedia del congreso'} loading="lazy" width="240" height="160" />
+                    <img src={item.url} alt={item.alt_text ?? item.title ?? 'Recurso multimedia del congreso'} loading="lazy" width="240" height="90" />
                   )}
                 </div>
               ))
             : mediaPartners.map((partner) => (
                 <div key={partner.id} className="cn-style-e6372759">
-                  <img src={partner.src} alt={partner.name} loading="lazy" width="240" height="160" className={partner.className} />
+                  <img src={partner.src} alt={partner.name} loading="lazy" width="240" height="90" className={partner.className} />
                 </div>
               ))}
         </div>
