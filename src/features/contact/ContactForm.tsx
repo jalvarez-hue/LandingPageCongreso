@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import type {
   ContactFormValues,
@@ -18,8 +18,12 @@ type SubmissionStatus =
   | { kind: 'idle' }
   | { kind: 'invalid'; message: string }
   | { kind: 'submitting' }
-  | { kind: 'success'; message: string }
   | { kind: 'error'; message: string };
+
+type ToastMessage = {
+  kind: 'info' | 'success';
+  message: string;
+};
 
 const initialValues: ContactFormValues = {
   name: '',
@@ -38,6 +42,14 @@ const interests: { id: Exclude<SponsorshipInterest, ''>; label: string }[] = [
 export function ContactForm({ selection, onSelectionChange }: ContactFormProps) {
   const [values, setValues] = useState(initialValues);
   const [status, setStatus] = useState<SubmissionStatus>({ kind: 'idle' });
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+
+    const timeoutId = window.setTimeout(() => setToast(null), 5000);
+    return () => window.clearTimeout(timeoutId);
+  }, [toast]);
 
   const updateField = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
@@ -94,13 +106,21 @@ export function ContactForm({ selection, onSelectionChange }: ContactFormProps) 
       if (error) {
         setStatus({ kind: 'error', message: 'No pudimos enviar tu mensaje. Intenta de nuevo.' });
       } else {
-        setStatus({ kind: 'success', message: 'Mensaje enviado. Nuestro equipo te contactará pronto.' });
+        setStatus({ kind: 'idle' });
         setValues(initialValues);
+        setToast({
+          kind: 'success',
+          message: 'La información se envió correctamente. Nuestro equipo te contactará pronto.',
+        });
       }
       return;
     }
 
     const subject = encodeURIComponent(`Patrocinio 3er Congreso · ${values.company}`);
+    setToast({
+      kind: 'info',
+      message: 'Se abrirá tu aplicación de correo para que completes el envío de la información.',
+    });
     window.location.href =
       `mailto:congreso@weecompany.net?subject=${subject}&body=${encodeURIComponent(body)}`;
   };
@@ -263,13 +283,22 @@ export function ContactForm({ selection, onSelectionChange }: ContactFormProps) 
               {status.message}
             </p>
           )}
-          {status.kind === 'success' && <p role="status" className="cn-style-b5ef31ec">{status.message}</p>}
           <button type="submit" disabled={status.kind === 'submitting'} className="cn-style-57ef7b41">
             {status.kind === 'submitting' ? 'Enviando...' : 'Enviar'}
           </button>
           <p className="cn-style-b5ef31ec">* Campos obligatorios.</p>
         </form>
       </div>
+      {toast && (
+        <p
+          className={`${styles.toast} ${toast.kind === 'success' ? styles.toastSuccess : styles.toastInfo}`}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {toast.message}
+        </p>
+      )}
     </section>
   );
 }

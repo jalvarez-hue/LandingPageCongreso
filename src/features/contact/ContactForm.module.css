@@ -21,3 +21,15 @@
 :global(.cn-style-da69abe7) { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 :global(.cn-style-afa7d5d3) { font-size: 12px; font-weight: 800; letter-spacing: 2.4px; text-transform: uppercase; color: rgba(255,255,255,0.72); }
 .scope { --cn-module-scope: 1; }
+.toast { position: fixed; top: 50%; left: 50%; z-index: 1000; width: min(420px, calc(100vw - 32px)); box-sizing: border-box; margin: 0; padding: 18px 20px; transform: translate(-50%, -50%); border: 1px solid var(--cn-color-lime); border-left-width: 5px; border-radius: 6px; background: var(--cn-color-white); color: var(--cn-color-deep); box-shadow: 0 12px 32px rgb(0 0 0 / 24%); font-size: 15px; font-weight: 700; line-height: 1.5; animation: toast-enter 180ms ease-out; }
+.toastSuccess { border-left-color: var(--cn-color-lime); }
+.toastInfo { border-left-color: var(--cn-color-forest); }
+
+@keyframes toast-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}
