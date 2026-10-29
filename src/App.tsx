@@ -85,7 +85,7 @@ export function App() {
             onSelect={(nextSelection) => setSelection(nextSelection)}
           />
         </SectionBoundary>
-        <SectionBoundary title="la sede"><VenueSection /></SectionBoundary>
+        <SectionBoundary title="el contador de la próxima edición"><VenueSection /></SectionBoundary>
         <SectionBoundary title="el archivo de eventos"><ArchiveSection /></SectionBoundary>
         <SectionBoundary title="el formulario de patrocinio">
           <ContactForm selection={selection} onSelectionChange={setSelection} />

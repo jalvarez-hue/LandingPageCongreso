@@ -1,4 +1,4 @@
-export type SocialNetwork = 'whatsapp' | 'telegram' | 'facebook';
+export type SocialNetwork = 'whatsapp' | 'telegram' | 'facebook' | 'linkedin';
 
 export interface SocialSettings {
   id: string;
@@ -35,7 +35,11 @@ export function isSocialUrl(network: SocialNetwork, value: string): boolean {
       return ['t.me', 'telegram.me'].includes(url.hostname) &&
         url.pathname.length > 1 && !url.pathname.startsWith('//');
     }
-    return ['facebook.com', 'www.facebook.com', 'm.facebook.com', 'fb.com', 'www.fb.com'].includes(url.hostname) &&
+    if (network === 'facebook') {
+      return ['facebook.com', 'www.facebook.com', 'm.facebook.com', 'fb.com', 'www.fb.com'].includes(url.hostname) &&
+        url.pathname.length > 1 && !url.pathname.startsWith('//');
+    }
+    return ['linkedin.com', 'www.linkedin.com'].includes(url.hostname) &&
       url.pathname.length > 1 && !url.pathname.startsWith('//');
   } catch (error: unknown) {
     if (error instanceof TypeError) return false;
@@ -44,7 +48,7 @@ export function isSocialUrl(network: SocialNetwork, value: string): boolean {
 }
 
 export function isSocialNetwork(value: unknown): value is SocialNetwork {
-  return value === 'whatsapp' || value === 'telegram' || value === 'facebook';
+  return value === 'whatsapp' || value === 'telegram' || value === 'facebook' || value === 'linkedin';
 }
 
 export function parseSocialSettings(value: unknown): SocialSettings {
@@ -66,6 +70,7 @@ export function parseSocialSettings(value: unknown): SocialSettings {
       whatsapp: 'Captura un enlace HTTPS de WhatsApp con un número internacional válido, sin espacios ni signos.',
       telegram: 'Captura un enlace HTTPS de t.me o telegram.me.',
       facebook: 'Captura un enlace HTTPS de facebook.com o fb.com.',
+      linkedin: 'Captura un enlace HTTPS de linkedin.com.',
     };
     throw new Error(instructions[value.network]);
   }

@@ -1,95 +1,111 @@
 import { useEffect, useState } from 'react';
+import { useCountdown } from '../../hooks/useCountdown';
 import { supabase } from '../../lib/supabaseClient';
 import { toGenericError } from '../../lib/errorReporter';
+import { formatEditionDates, getCountdownTarget } from './countdown';
 import styles from './VenueSection.module.css';
 
-type PublicVenue = {
-  name: string;
-  address: string;
-  description: string | null;
-  image_url: string | null;
-  google_maps_url: string | null;
-  amenities: { id: string; label: string }[];
-};
-
-type VenueQueryResult = Omit<PublicVenue, 'amenities'> & {
-  congress_editions: {
-    venue_amenities: { id: string; label: string; image_url: string | null; display_order: number }[];
-  };
+type DraftEdition = {
+  id: string;
+  year: number;
+  city: string;
+  starts_on: string | null;
+  ends_on: string | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isVenueQueryResult(value: unknown): value is VenueQueryResult {
-  if (!isRecord(value)) return false;
-  const nullableFields = ['description', 'image_url', 'google_maps_url'] as const;
-  if (
-    typeof value.name !== 'string' || typeof value.address !== 'string' ||
-    !nullableFields.every((field) => value[field] === null || typeof value[field] === 'string') ||
-    !isRecord(value.congress_editions) || !Array.isArray(value.congress_editions.venue_amenities)
-  ) return false;
-  return value.congress_editions.venue_amenities.every((item: unknown) =>
-    isRecord(item) && typeof item.id === 'string' && typeof item.label === 'string' &&
-    (item.image_url === null || typeof item.image_url === 'string') &&
-    typeof item.display_order === 'number' && Number.isFinite(item.display_order));
+function isDraftEdition(value: unknown): value is DraftEdition {
+  return isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.year === 'number' && Number.isInteger(value.year) &&
+    typeof value.city === 'string' &&
+    (value.starts_on === null || typeof value.starts_on === 'string') &&
+    (value.ends_on === null || typeof value.ends_on === 'string');
 }
 
 export function VenueSection() {
-  const [venue, setVenue] = useState<PublicVenue | null>(null);
+  const [draftEdition, setDraftEdition] = useState<DraftEdition | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const countdownTarget = getCountdownTarget(draftEdition?.starts_on ?? null);
+  const time = useCountdown(countdownTarget ?? 0);
+  const digits = [
+    { id: 'days', value: time.days, label: 'Días' },
+    { id: 'hours', value: time.hours, label: 'Horas' },
+    { id: 'minutes', value: time.minutes, label: 'Minutos' },
+    { id: 'seconds', value: time.seconds, label: 'Segundos' },
+  ] as const;
 
   useEffect(() => {
     const client = supabase;
-    if (!client) return;
+    if (!client) {
+      setIsLoaded(true);
+      setErrorMessage('No fue posible cargar la fecha de la próxima edición.');
+      return;
+    }
+
     const controller = new AbortController();
-    const loadVenue = async () => {
+    const loadSection = async () => {
       try {
-        const { data, error } = await client
-          .from('venues')
-          .select('name, address, description, image_url, google_maps_url, congress_editions!inner(status, venue_amenities(id, label, image_url, display_order))')
-          .eq('is_active', true)
-          .eq('congress_editions.status', 'published')
-          .order('updated_at', { ascending: false })
+        const editionResult = await client.from('congress_editions')
+          .select('id, year, city, starts_on, ends_on')
+          .eq('status', 'draft')
+          .order('year', { ascending: false })
           .limit(1)
           .abortSignal(controller.signal)
           .maybeSingle();
         if (controller.signal.aborted) return;
-        if (error) throw error;
-        if (!data) return;
-        if (!isVenueQueryResult(data)) throw new Error('Datos de sede o amenidades de edición inválidos.');
-        setVenue({
-          name: data.name,
-          address: data.address,
-          description: data.description,
-          image_url: data.image_url,
-          google_maps_url: data.google_maps_url,
-          amenities: data.congress_editions.venue_amenities.filter((item) => !item.image_url).sort((first, second) => first.display_order - second.display_order),
-        });
+        if (editionResult.error) throw editionResult.error;
+        if (editionResult.data) {
+          if (!isDraftEdition(editionResult.data)) throw new Error('Los datos de la próxima edición no son válidos.');
+          setDraftEdition(editionResult.data);
+        }
       } catch (error: unknown) {
         if (!controller.signal.aborted) setErrorMessage(toGenericError(error, 'venue.load'));
+      } finally {
+        if (!controller.signal.aborted) setIsLoaded(true);
       }
     };
-    void loadVenue();
+    void loadSection();
     return () => controller.abort();
   }, []);
 
   if (errorMessage) return <p role="alert">{errorMessage}</p>;
-  if (!venue) return null;
+  if (!isLoaded) return <p role="status">Cargando fecha de la próxima edición…</p>;
+  if (!draftEdition) return null;
 
   return (
-    <section className={styles.section} aria-labelledby="venue-title">
-      <div className={styles.content}>
-        <div>
-          <span className={styles.eyebrow}>Sede</span>
-          <h2 id="venue-title">Donde sucede la conversación</h2>
-          <p className={styles.address}>{venue.name}<br />{venue.address}</p>
-          {venue.description && <p className={styles.description}>{venue.description}</p>}
-          {venue.amenities.length > 0 && <ul className={styles.amenities}>{venue.amenities.map((amenity) => <li key={amenity.id}>{amenity.label}</li>)}</ul>}
-          {venue.google_maps_url && <a className={styles.mapLink} href={venue.google_maps_url} target="_blank" rel="noreferrer">Ver en Google Maps</a>}
-        </div>
-        {venue.image_url && <img className={styles.image} src={venue.image_url} alt={venue.name} loading="lazy" />}
+    <section className={styles.section} aria-labelledby="upcoming-title">
+      <div className={styles.countdownContent}>
+        <div className={styles.countdownIntro}>
+          <span className={styles.eyebrow}>Edición {draftEdition.year}</span>
+          <h2 id="upcoming-title" className={styles.countdownTitle}>
+            Nos vemos en <span>{draftEdition.city}</span>
+          </h2>
+          <p className={styles.description}>
+            La próxima edición será {formatEditionDates(draftEdition.starts_on, draftEdition.ends_on, draftEdition.year)} en{' '}
+            {draftEdition.city}. Esto es lo que falta para encontrarnos.
+          </p>
+          </div>
+        {countdownTarget === null ? (
+          <p className={styles.dateNotice}>La fecha de inicio está por confirmar.</p>
+        ) : time.complete ? (
+          <p className={styles.dateNotice} role="status">¡La edición {draftEdition.year} ya comenzó!</p>
+        ) : (
+          <div className={styles.countdown} role="timer" aria-label={`Cuenta regresiva para la edición ${draftEdition.year} en ${draftEdition.city}`}>
+            {digits.map((digit, index) => (
+              <div key={digit.id} className={styles.digitGroup}>
+                <div className={index === 0 ? styles.digitCardDays : styles.digitCard}>
+                  <span className={styles.digitValue}>{index === 0 ? digit.value : String(digit.value).padStart(2, '0')}</span>
+                </div>
+                <span className={styles.digitLabel}>{digit.label}</span>
+              </div>
+            ))}
+            </div>
+        )}
       </div>
     </section>
   );

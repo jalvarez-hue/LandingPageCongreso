@@ -88,6 +88,28 @@ test('rechaza URLs inseguras o con dominios similares para Telegram y Facebook',
   }
 });
 
+test('admite perfiles y páginas HTTPS de LinkedIn y rechaza dominios ajenos', () => {
+  for (const url of [
+    'https://linkedin.com/in/perfil',
+    'https://www.linkedin.com/company/organizacion',
+  ]) {
+    assert.equal(isSocialUrl('linkedin', url), true);
+    assert.equal(parseSocialSettings({ ...settings, network: 'linkedin', url, label: 'LinkedIn' }).url, url);
+  }
+
+  for (const url of [
+    'http://linkedin.com/in/perfil',
+    'https://linkedin.com.evil.test/in/perfil',
+    'https://evil-linkedin.com/in/perfil',
+    'https://user@linkedin.com/in/perfil',
+    'https://linkedin.com/',
+    'https://linkedin.com/in/perfil#contact',
+  ]) {
+    assert.equal(isSocialUrl('linkedin', url), false, url);
+    assert.throws(() => parseSocialSettings({ ...settings, network: 'linkedin', url, label: 'LinkedIn' }));
+  }
+});
+
 function render(value) {
   const { SocialBubble } = load('./SocialBubble.tsx', {
     react: {
@@ -111,6 +133,7 @@ test('el botón expande las redes en una lista apilada y accesible', () => {
     settings,
     { ...settings, id: 'link-2', network: 'telegram', url: 'https://t.me/congreso', label: 'Telegram', display_order: 1 },
     { ...settings, id: 'link-3', network: 'facebook', url: 'https://facebook.com/congreso', label: 'Facebook', display_order: 2 },
+    { ...settings, id: 'link-4', network: 'linkedin', url: 'https://linkedin.com/company/congreso', label: 'LinkedIn', display_order: 3 },
   ];
   const html = render(links);
   assert.match(html, /aria-label="Abrir redes sociales"/);
@@ -123,6 +146,7 @@ test('el botón expande las redes en una lista apilada y accesible', () => {
   assert.match(open, /href="https:\/\/api\.whatsapp\.com\/send\?phone=525512345678"/);
   assert.match(open, /href="https:\/\/t\.me\/congreso"/);
   assert.match(open, /href="https:\/\/facebook\.com\/congreso"/);
+  assert.match(open, /href="https:\/\/linkedin\.com\/company\/congreso"/);
   assert.match(open, /target="_blank"/);
   assert.match(open, /rel="noopener noreferrer"/);
   assert.match(open, /aria-label="Contactar por WhatsApp \(abre en una pestaña nueva\)"/);
@@ -154,12 +178,13 @@ function renderOpen(value) {
   return renderToStaticMarkup(React.createElement(SocialBubble));
 }
 
-test('muestra iconos de Telegram y Facebook en los enlaces apilados', () => {
+test('muestra iconos de Telegram, Facebook y LinkedIn en los enlaces apilados', () => {
   for (const [network, url] of [
     ['telegram', 'https://t.me/congreso'],
     ['facebook', 'https://facebook.com/congreso'],
+    ['linkedin', 'https://linkedin.com/company/congreso'],
   ]) {
-    const networkLabel = network === 'telegram' ? 'Telegram' : 'Facebook';
+    const networkLabel = { telegram: 'Telegram', facebook: 'Facebook', linkedin: 'LinkedIn' }[network];
     const html = renderOpen([{ ...settings, network, url, label: `Contactar por ${networkLabel}` }]);
     assert.match(html, new RegExp(`href="${url}"`));
     assert.match(html, /<svg/);

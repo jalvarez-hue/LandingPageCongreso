@@ -153,11 +153,13 @@ function SocialSettingsAdmin() {
     whatsapp: 'https://api.whatsapp.com/send?phone=525512345678',
     telegram: 'https://t.me/usuario',
     facebook: 'https://www.facebook.com/pagina',
+    linkedin: 'https://www.linkedin.com/company/organizacion',
   };
   const networkLabels: Record<SocialNetwork, string> = {
     whatsapp: 'WhatsApp',
     telegram: 'Telegram',
     facebook: 'Facebook',
+    linkedin: 'LinkedIn',
   };
   const changeNetwork = (value: string) => {
     if (!isSocialNetwork(value) || !form) return;
@@ -259,7 +261,7 @@ function SocialSettingsAdmin() {
       <h3>{form.id ? 'Editar enlace' : 'Agregar enlace a una red social'}</h3>
       <p>Agrega una o varias redes. Los enlaces activos se apilan en un menú desplegable en la esquina inferior derecha.</p>
       <form className={styles.form} onSubmit={(event) => void submit(event)}>
-        <Field label="Red social"><select value={form.network} onChange={(event) => changeNetwork(event.target.value)}><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="facebook">Facebook</option></select></Field>
+        <Field label="Red social"><select value={form.network} onChange={(event) => changeNetwork(event.target.value)}><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="facebook">Facebook</option><option value="linkedin">LinkedIn</option></select></Field>
         <Field label={`URL HTTPS de ${networkLabels[form.network]}`}><input type="url" required value={form.url} placeholder={urlExamples[form.network]} onChange={(event) => setForm({ ...form, url: event.target.value })} /></Field>
         <Field label="Etiqueta accesible"><input required value={form.label} onChange={(event) => setForm({ ...form, label: event.target.value })} /></Field>
         <Field label="Orden en el menú"><input type="number" min="0" step="1" value={form.display_order} onChange={(event) => setForm({ ...form, display_order: Number(event.target.value) })} /></Field>

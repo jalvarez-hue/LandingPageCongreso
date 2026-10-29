@@ -1,90 +1,133 @@
 .section {
   padding: clamp(64px, 9vw, 128px) 24px;
-  background: #0b3328;
-  color: #f4f5ef;
+  background: var(--cn-color-deep);
+  color: var(--cn-color-bg);
 }
 
-.content {
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
-  gap: clamp(32px, 7vw, 96px);
-  align-items: center;
-  width: min(1280px, 100%);
+.countdownContent {
+  width: min(var(--cn-content-width), 100%);
   margin: 0 auto;
 }
 
+.countdownIntro {
+  max-width: 720px;
+  margin-bottom: clamp(32px, 5vw, 56px);
+}
+
+.countdownTitle {
+  margin: 18px 0 24px;
+  color: var(--cn-color-white);
+  font-family: var(--cn-font-display);
+  font-size: clamp(56px, 8vw, 104px);
+  font-weight: 400;
+  line-height: 0.88;
+  text-transform: uppercase;
+}
+
+.countdownTitle span {
+  display: block;
+  color: var(--cn-color-lime);
+}
+
+.countdownIntro .description {
+  max-width: 620px;
+  margin: 0;
+  color: var(--cn-color-bg);
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+}
+
+.countdown {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  width: min(100%, 1280px);
+}
+
+.digitGroup {
+  min-width: 0;
+  text-align: center;
+}
+
+.digitCard,
+.digitCardDays {
+  position: relative;
+  display: grid;
+  min-height: clamp(112px, 12vw, 154px);
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--cn-color-forest);
+}
+
+.digitCardDays {
+  background: var(--cn-color-lime);
+  color: var(--cn-color-deep);
+}
+
+.digitCard::after,
+.digitCardDays::after {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: rgb(6 32 26 / 72%);
+  content: '';
+}
+
+.digitValue {
+  font-family: var(--cn-font-display);
+  font-size: clamp(4rem, 9vw, 7.5rem);
+  line-height: 1;
+}
+
+.digitLabel {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--cn-color-bg);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.dateNotice {
+  margin: 0;
+  color: var(--cn-color-lime);
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  font-weight: 700;
+}
+
 .eyebrow {
-  color: #c8f135;
+  color: var(--cn-color-lime);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 2px;
   text-transform: uppercase;
 }
 
-.section h2 {
-  max-width: 620px;
-  margin: 14px 0 24px;
-  color: #c8f135;
-  font-family: var(--cn-font-display);
-  font-size: clamp(52px, 7vw, 104px);
-  font-weight: 400;
-  line-height: 0.92;
-}
-
-.address,
 .description {
   max-width: 560px;
   line-height: 1.6;
-}
-
-.address {
-  font-size: 20px;
-  font-weight: 800;
 }
 
 .description {
   color: rgb(244 245 239 / 72%);
 }
 
-.amenities {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 24px;
-  max-width: 560px;
-  margin: 28px 0;
-  padding: 0;
-  list-style: none;
-}
-
-.amenities li::before {
-  content: '+ ';
-  color: #c8f135;
-  font-weight: 800;
-}
-
-.mapLink {
-  display: inline-block;
-  margin-top: 8px;
-  padding-bottom: 5px;
-  border-bottom: 2px solid #c8f135;
-  color: #c8f135;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.image {
-  width: 100%;
-  max-height: 560px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
 @media (max-width: 760px) {
-  .content {
-    grid-template-columns: 1fr;
+  .countdown {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
 
-  .amenities {
-    grid-template-columns: 1fr;
+  .digitCard,
+  .digitCardDays {
+    min-height: 112px;
   }
+
+  .digitValue {
+    font-size: clamp(3.75rem, 18vw, 6rem);
+  }
+
 }

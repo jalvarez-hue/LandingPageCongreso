@@ -3,7 +3,7 @@ begin;
 
 create table if not exists public.social_links (
   id uuid primary key default gen_random_uuid(),
-  network text not null check (network in ('whatsapp', 'telegram', 'facebook')),
+  network text not null check (network in ('whatsapp', 'telegram', 'facebook', 'linkedin')),
   url text not null check (url ~ '^https://'),
   label text not null check (length(btrim(label)) > 0),
   is_active boolean not null default false,
@@ -16,7 +16,7 @@ alter table public.social_links
   drop constraint if exists social_links_network_check;
 alter table public.social_links
   add constraint social_links_network_check
-  check (network in ('whatsapp', 'telegram', 'facebook'));
+  check (network in ('whatsapp', 'telegram', 'facebook', 'linkedin'));
 
 create index if not exists social_links_active_order_idx
   on public.social_links (display_order, id)

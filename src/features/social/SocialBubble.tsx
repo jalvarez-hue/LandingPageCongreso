@@ -17,8 +17,13 @@ function SocialIcon({ network }: { network: SocialSettings['network'] }) {
       <path d="M27.6 5.2 23.8 26c-.3 1.5-1.2 1.8-2.5 1l-6.8-5-3.3 3.2c-.4.4-.7.7-1.4.7l.5-6.9L23 8.5c.6-.5-.1-.8-.9-.3L6.9 17.8l-6.6-2c-1.4-.4-1.4-1.4.3-2L25.9 4.1c1.2-.4 2.2.3 1.7 1.1Z" transform="translate(2 1)" />
     </svg>;
   }
+  if (network === 'facebook') {
+    return <svg viewBox="0 0 32 32" width="24" height="24" fill="currentColor" aria-hidden="true" focusable="false">
+      <path d="M18.4 29V17.4h3.9l.6-4.5h-4.5V10c0-1.3.4-2.2 2.2-2.2H23V3.7c-.4-.1-1.9-.2-3.6-.2-3.6 0-6 2.2-6 6.2v3.2h-4v4.5h4V29h5Z" />
+    </svg>;
+  }
   return <svg viewBox="0 0 32 32" width="24" height="24" fill="currentColor" aria-hidden="true" focusable="false">
-    <path d="M18.4 29V17.4h3.9l.6-4.5h-4.5V10c0-1.3.4-2.2 2.2-2.2H23V3.7c-.4-.1-1.9-.2-3.6-.2-3.6 0-6 2.2-6 6.2v3.2h-4v4.5h4V29h5Z" />
+    <path d="M7.2 10.7H3.5V28h3.7V10.7ZM5.4 3.9a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4ZM28.5 18.1c0-5.2-2.8-7.7-6.5-7.7a5.6 5.6 0 0 0-5 2.7v-2.4h-3.7V28H17v-8.6c0-2.3.4-4.5 3.3-4.5s2.9 2.6 2.9 4.7V28h3.7l1.6-9.9Z" />
   </svg>;
 }
 
