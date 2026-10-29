@@ -67,9 +67,7 @@ Durante el desarrollo puedes previsualizar el correo en [http://localhost:5173/e
 
 ## Distribución de patrocinadores
 
-Cada nivel distribuye de uno a seis patrocinadores en columnas de igual ancho; un único logo ocupa todo el ancho disponible. A partir de siete, el nivel se convierte en un carrusel manual con flechas, desplazamiento táctil y acceso por teclado, sin duplicar logos ni reproducción automática. En pantallas de hasta 760 px se muestran hasta dos columnas. El desplazamiento respeta la preferencia de movimiento reducido.
-
-Las imágenes ocupan el ancho interior de su tarjeta y ajustan su altura automáticamente según su proporción original, sin un límite de altura fijo.
+Los logos de patrocinadores se consultan únicamente para la edición con estado `published`, y el título «Nuestros patrocinadores» muestra el año de esa edición. No hay respaldo de logos locales ni se muestran placeholders: las secciones Diamante, Oro y Plata permanecen visibles aunque no tengan patrocinadores. Los logos se distribuyen en una cuadrícula fija por nivel, sin carrusel ni duplicación: Diamante muestra uno por fila, Oro dos y Plata hasta seis en pantallas amplias (tres en tablet y dos en móvil). Las tarjetas mantienen una altura uniforme y cada logo conserva su proporción dentro del mismo espacio visual. Diamante usa un marco uniforme más amplio; los demás niveles mantienen sus medidas.
 
 ## Estructura
 
