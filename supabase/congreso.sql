@@ -212,12 +212,9 @@ alter table public.media_items enable row level security;
 alter table public.contact_messages enable row level security;
 alter table public.app_errors enable row level security;
 
-do $$
-begin
-  create policy "Public can read published editions" on public.congress_editions
-    for select using (status = 'published' or status = 'archived');
-exception when duplicate_object then null;
-end $$;
+drop policy if exists "Public can read published editions" on public.congress_editions;
+create policy "Public can read published editions" on public.congress_editions
+  for select using (status in ('published', 'archived', 'draft'));
 
 do $$
 begin
@@ -250,12 +247,15 @@ begin
 exception when duplicate_object then null;
 end $$;
 
-do $$
-begin
-  create policy "Public can read active venues" on public.venues
-    for select using (is_active = true);
-exception when duplicate_object then null;
-end $$;
+drop policy if exists "Public can read active venues" on public.venues;
+create policy "Public can read active venues" on public.venues
+  for select using (
+    is_active = true
+    and exists (
+      select 1 from public.congress_editions e
+      where e.id = edition_id and e.status in ('published', 'archived')
+    )
+  );
 
 do $$
 begin

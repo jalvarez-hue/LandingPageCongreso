@@ -13,11 +13,12 @@ const toArchive = (data) => JSON.parse(JSON.stringify(context.exports.toArchive(
 
 const photo = { id: 'photo-1', label: 'Actividad', image_url: '/photo.jpg', alt_text: null, display_order: 1 };
 const venue = { id: 'venue-1', description: 'Primera edición.', image_url: '/poster.jpg', video_url: '/video.mp4', video_label: null };
-const edition = { id: 'edition-2025', year: 2025, city: 'Mérida', venues: [venue], venue_amenities: [photo] };
+const edition = { id: 'edition-2025', year: 2025, city: 'Mérida', status: 'archived', starts_on: null, ends_on: null, venues: [venue], venue_amenities: [photo] };
 
 test('el archivo usa la edición como identidad y conserva el formato público', () => {
   assert.deepEqual(toArchive([edition]), [{
     id: 'edition-2025',
+    status: 'archived',
     year: '2025 · Mérida',
     description: 'Primera edición.',
     video: '/video.mp4',
@@ -67,9 +68,34 @@ test('acepta archivo vacío y rechaza respuestas o relaciones inválidas', () =>
     [null],
     [{ ...edition, venues: null }],
     [{ ...edition, year: 1999 }],
+    [{ ...edition, status: 'private' }],
     [{ ...edition, venues: [{ ...venue, video_url: 7 }] }],
     [{ ...edition, venue_amenities: [{ ...photo, display_order: '1' }] }],
   ]) {
     assert.throws(() => toArchive(invalid));
   }
+});
+
+test('las ediciones draft muestran Próximamente y no publican medios anticipados', () => {
+  const [event] = toArchive([{
+    ...edition,
+    status: 'draft',
+    starts_on: '2027-09-01',
+    ends_on: '2027-09-04',
+    year: 2027,
+    city: 'Guadalajara',
+    venues: [venue],
+    venue_amenities: [photo],
+  }]);
+  assert.equal(event.status, 'draft');
+  assert.equal(event.year, '2027 · Guadalajara');
+  assert.equal(event.description, '1 al 4 de septiembre.');
+  assert.equal(event.video, null);
+  assert.equal(event.poster, null);
+  assert.deepEqual(event.photos, []);
+});
+
+test('una edición draft sin fechas usa un mensaje próximo por defecto', () => {
+  const [event] = toArchive([{ ...edition, status: 'draft', year: 2027 }]);
+  assert.equal(event.description, 'Más información pronto.');
 });
